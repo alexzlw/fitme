@@ -1,0 +1,1337 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>健康记录进度面板</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --bg: #eef7f3;
+      --surface: rgba(255, 255, 255, 0.62);
+      --surface-strong: rgba(255, 255, 255, 0.78);
+      --surface-soft: rgba(234, 249, 241, 0.58);
+      --ink: #15241d;
+      --muted: #526a5e;
+      --line: rgba(255, 255, 255, 0.62);
+      --line-ink: rgba(51, 103, 76, 0.16);
+      --green: #2d8f63;
+      --green-dark: #1f694d;
+      --mint: #e5f1eb;
+      --blue: #c8d4dc;
+      --yellow: #e7e2c9;
+      --red: #e47c67;
+      --glass-edge: rgba(255, 255, 255, 0.86);
+      --glass-shadow: 0 26px 78px rgba(31, 51, 42, 0.11), 0 1px 0 rgba(255, 255, 255, 0.96) inset, 0 -1px 0 rgba(31, 51, 42, 0.08) inset;
+      --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.96), inset 0 -1px 0 rgba(31, 51, 42, 0.08);
+      --radius: 8px;
+      --ease-glass: cubic-bezier(.18, .86, .28, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.95), transparent 20%),
+        radial-gradient(circle at 82% 14%, rgba(235, 239, 236, 0.72), transparent 25%),
+        radial-gradient(circle at 18% 78%, rgba(225, 235, 230, 0.52), transparent 30%),
+        linear-gradient(160deg, #fbfcfb 0%, #f1f5f3 50%, #fafaf7 100%);
+      color: var(--ink);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      letter-spacing: 0;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 18px),
+        repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 22px),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
+      mask-image: linear-gradient(180deg, black, transparent 76%);
+      opacity: 0.34;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -18%;
+      pointer-events: none;
+      background:
+        radial-gradient(closest-side at 28% 18%, rgba(255, 255, 255, 0.52), transparent 66%),
+        radial-gradient(closest-side at 72% 60%, rgba(222, 232, 226, 0.12), transparent 72%);
+      filter: blur(20px);
+      opacity: 0.38;
+      transform: translate3d(-4%, -3%, 0);
+      animation: ambientShift 14s var(--ease-glass) infinite alternate;
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .page::before {
+      content: "";
+      position: absolute;
+      inset: 126px -22px 0;
+      pointer-events: none;
+      background:
+        linear-gradient(112deg, transparent 0 14%, rgba(31, 51, 42, 0.025) 14% 19%, transparent 19% 45%, rgba(255, 255, 255, 0.42) 45% 53%, transparent 53% 75%, rgba(31, 51, 42, 0.018) 75% 80%, transparent 80%),
+        radial-gradient(circle at 74% 18%, rgba(255, 255, 255, 0.3), transparent 16%),
+        radial-gradient(circle at 24% 52%, rgba(226, 235, 231, 0.16), transparent 24%);
+      filter: blur(0.4px);
+      opacity: 0.42;
+      z-index: -1;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: flex-start;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--green-dark);
+      font-size: 13px;
+      font-weight: 700;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: fadeRise 680ms var(--ease-glass) 60ms forwards;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(30px, 5vw, 58px);
+      line-height: 0.98;
+      font-weight: 800;
+      max-width: 700px;
+      opacity: 0;
+      transform: translateY(10px);
+      animation: fadeRise 760ms var(--ease-glass) 140ms forwards;
+    }
+
+    .subcopy {
+      margin: 14px 0 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+      max-width: 680px;
+      opacity: 0;
+      transform: translateY(8px);
+      animation: fadeRise 760ms var(--ease-glass) 220ms forwards;
+    }
+
+    .status-pill {
+      min-width: 180px;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.04)),
+        rgba(255, 255, 255, 0.07);
+      border-radius: 999px;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: center;
+      box-shadow: var(--inner-glow), 0 14px 34px rgba(33, 83, 61, 0.13);
+      backdrop-filter: blur(42px) saturate(230%) contrast(1.08);
+      -webkit-backdrop-filter: blur(42px) saturate(230%) contrast(1.08);
+      opacity: 0;
+      transform: translateY(8px) scale(0.98);
+      animation: fadeRise 700ms var(--ease-glass) 300ms forwards;
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 16px;
+      align-items: stretch;
+      margin-bottom: 16px;
+    }
+
+    .panel {
+      border: 1px solid var(--glass-edge);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(120% 90% at 8% 0%, rgba(255, 255, 255, 0.22), transparent 42%),
+        radial-gradient(90% 80% at 92% 8%, rgba(255, 255, 255, 0.08), transparent 54%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.01)),
+        rgba(255, 255, 255, 0.018);
+      box-shadow: var(--glass-shadow);
+      overflow: hidden;
+      position: relative;
+      backdrop-filter: blur(42px) saturate(160%) contrast(1.06);
+      -webkit-backdrop-filter: blur(42px) saturate(160%) contrast(1.06);
+      transform: translateY(12px) scale(0.985);
+      opacity: 0;
+      animation: glassEnter 780ms var(--ease-glass) both;
+      transition: transform 320ms var(--ease-glass), box-shadow 320ms var(--ease-glass), border-color 320ms var(--ease-glass);
+    }
+
+    .panel:nth-child(2) {
+      animation-delay: 90ms;
+    }
+
+    .section .panel:nth-child(1) {
+      animation-delay: 160ms;
+    }
+
+    .section .panel:nth-child(2) {
+      animation-delay: 230ms;
+    }
+
+    .section .panel:nth-child(3) {
+      animation-delay: 300ms;
+    }
+
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(80% 48% at 22% 0%, rgba(255, 255, 255, 0.34), transparent 62%),
+        linear-gradient(118deg, rgba(255, 255, 255, 0.42), transparent 30%),
+        linear-gradient(300deg, rgba(255, 255, 255, 0.12), transparent 42%);
+      opacity: 0.7;
+      mix-blend-mode: screen;
+    }
+
+    .panel::after {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      pointer-events: none;
+      background:
+        linear-gradient(105deg, transparent 36%, rgba(255, 255, 255, 0.56) 48%, transparent 60%),
+        radial-gradient(closest-side at 42% 48%, rgba(255, 255, 255, 0.18), transparent 72%);
+      transform: translateX(-44%) rotate(4deg);
+      opacity: 0.18;
+      animation: glassSweep 8s var(--ease-glass) infinite alternate;
+      transition: opacity 260ms ease, transform 720ms var(--ease-glass);
+    }
+
+    .panel:hover {
+      transform: translateY(-3px) scale(1);
+      border-color: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 40px 112px rgba(32, 83, 61, 0.24), var(--inner-glow);
+    }
+
+    .panel:hover::after {
+      opacity: 0.72;
+      transform: translateX(38%) rotate(4deg);
+    }
+
+    .panel-inner {
+      padding: 22px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1px;
+      background: rgba(255, 255, 255, 0.035);
+      border-top: 1px solid rgba(255, 255, 255, 0.58);
+      position: relative;
+      z-index: 1;
+    }
+
+    .metric {
+      background:
+        linear-gradient(150deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.008)),
+        rgba(255, 255, 255, 0.015);
+      padding: 18px;
+      min-height: 132px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--inner-glow), inset 12px 0 24px rgba(255, 255, 255, 0.16);
+      backdrop-filter: blur(24px) saturate(145%);
+      -webkit-backdrop-filter: blur(24px) saturate(145%);
+      transition: background 260ms ease, transform 260ms var(--ease-glass);
+    }
+
+    .metric:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-2px);
+    }
+
+    .metric-label {
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 650;
+    }
+
+    .metric-value {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 800;
+      line-height: 1;
+      margin-top: 16px;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .metric-note {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 10px;
+      line-height: 1.45;
+    }
+
+    .ring-wrap {
+      display: grid;
+      place-items: center;
+      height: 100%;
+      min-height: 300px;
+      background:
+        radial-gradient(85% 70% at 32% 24%, rgba(255, 255, 255, 0.22), transparent 58%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.018));
+      position: relative;
+      z-index: 1;
+      overflow: hidden;
+    }
+
+    .ring-wrap::before {
+      content: "";
+      position: absolute;
+      width: 72%;
+      height: 72%;
+      border-radius: 42%;
+      border: 1px solid rgba(255, 255, 255, 0.5);
+      background:
+        radial-gradient(70% 70% at 26% 16%, rgba(255, 255, 255, 0.24), transparent 62%),
+        linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.025));
+      filter: blur(0.3px);
+      transform: rotate(-10deg);
+      animation: liquidTilt 7s var(--ease-glass) infinite alternate;
+    }
+
+    .ring {
+      width: min(260px, 72vw);
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background:
+        conic-gradient(rgba(31, 105, 77, 0.42) var(--angle), rgba(255, 255, 255, 0.18) 0deg);
+      position: relative;
+      box-shadow:
+        0 18px 46px rgba(31, 51, 42, 0.09),
+        inset 0 1px 0 rgba(255, 255, 255, 0.86),
+        inset 0 -1px 0 rgba(31, 51, 42, 0.06);
+      transition: --angle 1.45s var(--ease-glass);
+      animation: breathe 5.5s ease-in-out infinite;
+    }
+
+    .ring::before {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 50%;
+      background:
+        radial-gradient(85% 70% at 30% 18%, rgba(255, 255, 255, 0.48), transparent 62%),
+        rgba(255, 255, 255, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.88), inset 0 -14px 28px rgba(31, 51, 42, 0.035);
+      backdrop-filter: blur(34px) saturate(78%) contrast(1.02);
+      -webkit-backdrop-filter: blur(34px) saturate(78%) contrast(1.02);
+    }
+
+    .ring::after {
+      content: "";
+      position: absolute;
+      inset: 8px 18px auto 42px;
+      height: 38%;
+      border-radius: 999px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.52), transparent);
+      filter: blur(2px);
+      transform: rotate(-18deg);
+      opacity: 0.64;
+    }
+
+    .ring-content {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+
+    .ring-number {
+      font-size: 48px;
+      font-weight: 850;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ring-caption {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .section {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 16px;
+      font-weight: 800;
+    }
+
+    .calendar {
+      display: grid;
+      gap: 14px;
+    }
+
+    .heatmap-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      margin: -4px 0 2px;
+    }
+
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .legend-chip {
+      width: 14px;
+      aspect-ratio: 1;
+      border-radius: 4px;
+      background: var(--c);
+      border: 1px solid rgba(255, 255, 255, 0.64);
+      box-shadow: var(--inner-glow);
+    }
+
+    .month-block {
+      display: grid;
+      gap: 7px;
+      justify-content: start;
+      animation: glassEnter 760ms var(--ease-glass) both;
+    }
+
+    .month-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 750;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .heatmap-grid {
+      display: grid;
+      grid-template-columns: repeat(7, 14px);
+      grid-auto-rows: 14px;
+      gap: 5px;
+    }
+
+    .heatmap-cell {
+      width: 14px;
+      aspect-ratio: 1;
+      min-width: 0;
+      border: 1px solid rgba(255, 255, 255, 0.62);
+      border-radius: 4px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.06)),
+        rgba(255, 255, 255, 0.12);
+      box-shadow: var(--inner-glow), 0 8px 18px rgba(38, 91, 67, 0.06);
+      backdrop-filter: blur(12px) saturate(145%);
+      -webkit-backdrop-filter: blur(12px) saturate(145%);
+      cursor: default;
+      opacity: 0;
+      transform: translateY(5px) scale(0.92);
+      animation: cellBloom 520ms var(--ease-glass) forwards;
+      animation-delay: var(--delay);
+      transition: transform 180ms var(--ease-glass), box-shadow 180ms var(--ease-glass), border-color 180ms ease, filter 180ms ease;
+    }
+
+    .heatmap-cell.is-empty {
+      opacity: 0.32;
+      background: rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.5);
+    }
+
+    .heatmap-cell[data-level="1"] {
+      background: linear-gradient(145deg, rgba(220, 238, 228, 0.56), rgba(172, 210, 190, 0.42));
+    }
+
+    .heatmap-cell[data-level="2"] {
+      background: linear-gradient(145deg, rgba(168, 211, 190, 0.62), rgba(92, 160, 120, 0.48));
+    }
+
+    .heatmap-cell[data-level="3"] {
+      background: linear-gradient(145deg, rgba(82, 157, 116, 0.68), rgba(31, 105, 77, 0.58));
+    }
+
+    .heatmap-cell[data-level="4"] {
+      background: linear-gradient(145deg, rgba(31, 126, 86, 0.7), rgba(18, 84, 61, 0.64));
+      box-shadow: 0 10px 22px rgba(25, 118, 78, 0.12), var(--inner-glow);
+    }
+
+    .heatmap-cell:not(.is-empty):hover {
+      transform: translateY(-3px) scale(1.16);
+      border-color: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 16px 32px rgba(30, 101, 70, 0.22), var(--inner-glow);
+      filter: saturate(1.08);
+      z-index: 2;
+    }
+
+    .bar {
+      width: 100%;
+      height: 7px;
+      border-radius: 999px;
+      background: rgba(48, 100, 72, 0.1);
+      overflow: hidden;
+      margin-top: 12px;
+      box-shadow: inset 0 1px 2px rgba(31, 70, 49, 0.08);
+    }
+
+    .bar span {
+      display: block;
+      height: 100%;
+      width: 0;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(47, 143, 99, 0.68), rgba(200, 212, 220, 0.72));
+      position: relative;
+      animation: growBar 1100ms var(--ease-glass) forwards;
+      animation-delay: var(--delay);
+    }
+
+    .bar span::after,
+    .timeline-track span::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.68), transparent);
+      transform: translateX(-100%);
+      animation: shimmer 2.8s ease-in-out infinite;
+      animation-delay: calc(var(--delay) + 600ms);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .timeline-row {
+      display: grid;
+      grid-template-columns: 78px 1fr 76px;
+      gap: 12px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .timeline-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(48, 100, 72, 0.1);
+      overflow: hidden;
+      box-shadow: inset 0 1px 2px rgba(31, 70, 49, 0.08);
+    }
+
+    .timeline-track span {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(159, 200, 177, 0.72), rgba(31, 105, 77, 0.82));
+      position: relative;
+      animation: growBar 1200ms var(--ease-glass) forwards;
+      animation-delay: var(--delay);
+    }
+
+    .summary-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .summary-item {
+      display: grid;
+      grid-template-columns: 16px 1fr;
+      gap: 10px;
+      align-items: start;
+      color: var(--muted);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      margin-top: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 0 5px rgba(52, 163, 111, 0.12);
+    }
+
+    .meal-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .meal-filter {
+      border: 1px solid rgba(255, 255, 255, 0.64);
+      border-radius: 999px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.04)),
+        rgba(255, 255, 255, 0.04);
+      color: var(--muted);
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 750;
+      padding: 8px 11px;
+      box-shadow: var(--inner-glow);
+      backdrop-filter: blur(26px) saturate(150%);
+      -webkit-backdrop-filter: blur(26px) saturate(150%);
+      transition: transform 180ms var(--ease-glass), background 180ms ease, color 180ms ease;
+    }
+
+    .meal-filter:hover,
+    .meal-filter.is-active {
+      background: rgba(255, 255, 255, 0.28);
+      color: var(--ink);
+      transform: translateY(-1px);
+    }
+
+    .meal-days {
+      display: grid;
+      gap: 10px;
+    }
+
+    .meal-day {
+      border: 1px solid rgba(255, 255, 255, 0.62);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(90% 90% at 10% 0%, rgba(255, 255, 255, 0.22), transparent 60%),
+        rgba(255, 255, 255, 0.03);
+      box-shadow: var(--inner-glow), 0 12px 28px rgba(38, 91, 67, 0.06);
+      overflow: hidden;
+      backdrop-filter: blur(34px) saturate(155%);
+      -webkit-backdrop-filter: blur(34px) saturate(155%);
+    }
+
+    .meal-day summary {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 82px 1fr auto;
+      gap: 12px;
+      align-items: center;
+      cursor: pointer;
+      padding: 14px 16px;
+    }
+
+    .meal-day summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .meal-day-label {
+      font-weight: 850;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .meal-day-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .meal-day-total {
+      color: var(--green-dark);
+      font-size: 13px;
+      font-weight: 850;
+      white-space: nowrap;
+    }
+
+    .meal-list {
+      display: grid;
+      gap: 10px;
+      padding: 0 12px 14px;
+    }
+
+    .meal-card {
+      display: grid;
+      grid-template-columns: 96px 1fr;
+      gap: 12px;
+      min-height: 104px;
+      padding: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.58);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.025)),
+        rgba(255, 255, 255, 0.035);
+      box-shadow: var(--inner-glow);
+    }
+
+    .meal-photo {
+      width: 96px;
+      height: 96px;
+      border-radius: var(--radius);
+      object-fit: cover;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.36), rgba(255, 255, 255, 0.08)),
+        rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.68);
+      box-shadow: var(--inner-glow);
+    }
+
+    .meal-photo-placeholder {
+      display: grid;
+      place-items: center;
+      color: rgba(82, 106, 94, 0.76);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .meal-card-main {
+      min-width: 0;
+      display: grid;
+      gap: 6px;
+    }
+
+    .meal-card-head {
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .meal-kind {
+      display: inline-flex;
+      width: fit-content;
+      border: 1px solid rgba(255, 255, 255, 0.58);
+      border-radius: 999px;
+      color: var(--green-dark);
+      background: rgba(255, 255, 255, 0.12);
+      font-size: 11px;
+      font-weight: 850;
+      padding: 3px 7px;
+      white-space: nowrap;
+    }
+
+    .meal-title {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.35;
+      font-weight: 850;
+    }
+
+    .meal-desc,
+    .meal-source {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .meal-numbers {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .meal-number {
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.16);
+      color: var(--ink);
+      font-size: 12px;
+      font-weight: 800;
+      padding: 5px 8px;
+    }
+
+    .wide {
+      grid-column: 1 / -1;
+    }
+
+    .deficit {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .deficit-card {
+      padding: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.62);
+      border-radius: var(--radius);
+      background:
+        radial-gradient(90% 90% at 18% 0%, rgba(255, 255, 255, 0.22), transparent 58%),
+        rgba(255, 255, 255, 0.035);
+      box-shadow: var(--inner-glow), 0 14px 30px rgba(38, 91, 67, 0.08);
+      backdrop-filter: blur(40px) saturate(165%);
+      -webkit-backdrop-filter: blur(40px) saturate(165%);
+      transition: transform 240ms var(--ease-glass), background 240ms ease;
+    }
+
+    .deficit-card:hover {
+      transform: translateY(-3px);
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    .deficit-card b {
+      display: block;
+      font-size: 26px;
+      margin-bottom: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    @property --angle {
+      syntax: "<angle>";
+      initial-value: 0deg;
+      inherits: false;
+    }
+
+    @keyframes fadeRise {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes glassEnter {
+      from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.975);
+        filter: blur(10px);
+      }
+      70% {
+        opacity: 1;
+        filter: blur(0);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0);
+      }
+    }
+
+    @keyframes growBar {
+      to {
+        width: var(--w);
+      }
+    }
+
+    @keyframes shimmer {
+      0% {
+        transform: translateX(-120%);
+      }
+      44%,
+      100% {
+        transform: translateX(120%);
+      }
+    }
+
+    @keyframes glassSweep {
+      from {
+        transform: translateX(-48%) rotate(4deg);
+      }
+      to {
+        transform: translateX(28%) rotate(4deg);
+      }
+    }
+
+    @keyframes ambientShift {
+      to {
+        transform: translate3d(3%, 2%, 0);
+      }
+    }
+
+    @keyframes liquidTilt {
+      to {
+        transform: rotate(11deg) scale(1.03);
+      }
+    }
+
+    @keyframes breathe {
+      0%,
+      100% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.018);
+      }
+    }
+
+    @keyframes cellBloom {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    @media (max-width: 860px) {
+      .topbar,
+      .hero,
+      .section,
+      .deficit {
+        grid-template-columns: 1fr;
+      }
+
+      .topbar {
+        display: grid;
+      }
+
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .status-pill {
+        width: max-content;
+        max-width: 100%;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .page {
+        width: min(100% - 22px, 1180px);
+        padding-top: 18px;
+      }
+
+      .panel-inner,
+      .metric {
+        padding: 16px;
+      }
+
+      .timeline-row {
+        grid-template-columns: 58px 1fr 52px;
+        gap: 8px;
+      }
+
+      .meal-day summary {
+        grid-template-columns: 1fr;
+      }
+
+      .meal-day-note {
+        white-space: normal;
+      }
+
+      .meal-card {
+        grid-template-columns: 72px 1fr;
+      }
+
+      .meal-photo {
+        width: 72px;
+        height: 72px;
+      }
+
+      .ring {
+        width: min(224px, 70vw);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topbar">
+      <div>
+        <p class="eyebrow" id="periodLabel">Nutrition Log</p>
+        <h1 id="pageTitle">减脂进度面板</h1>
+        <p class="subcopy">基于当前记录的饮食、运动和体重数据生成。所有热量和缺口均为记录估算，用来辅助决策，不当作医疗级精确测量。</p>
+      </div>
+      <div class="status-pill" id="statusPill"></div>
+    </div>
+
+    <section class="hero">
+      <div class="panel">
+        <div class="panel-inner">
+          <p class="section-title">当前概览</p>
+          <p class="subcopy" id="overviewCopy"></p>
+        </div>
+        <div class="hero-grid" id="metricGrid"></div>
+      </div>
+
+      <div class="panel">
+        <div class="ring-wrap">
+          <div class="ring" id="proteinRing" style="--angle:0deg">
+            <div class="ring-content">
+              <div class="ring-number count" id="proteinCompletion" data-value="0">0</div>
+              <div class="ring-caption">今日蛋白目标完成率</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <div class="panel-inner">
+          <p class="section-title">长期缺口日历</p>
+          <div class="calendar" id="calendarGrid"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-inner">
+          <p class="section-title">热量缺口趋势</p>
+          <div class="timeline" id="deficitTimeline"></div>
+          <p class="footer-note" id="deficitFootnote"></p>
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-inner">
+          <p class="section-title">每日餐食</p>
+          <div class="meal-toolbar" id="mealFilters"></div>
+          <div class="meal-days" id="mealDays"></div>
+        </div>
+      </div>
+
+      <div class="panel wide">
+        <div class="panel-inner">
+          <p class="section-title">总览与下一步</p>
+          <div class="deficit" id="summaryCards"></div>
+          <div class="summary-list" id="summaryList" style="margin-top:16px"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="./health_dashboard_data.js"></script>
+  <script>
+    const easeOutCubic = t => 1 - Math.pow(1 - t, 3);
+    let data = window.HEALTH_DASHBOARD_DATA;
+    let activeMealFilter = "all";
+    const fmt = number => Number(number).toLocaleString("zh-CN");
+    const avg = range => Math.round((range[0] + range[1]) / 2);
+    const mealLabels = {
+      all: "全部",
+      breakfast: "早餐",
+      lunch: "午餐",
+      dinner: "晚餐",
+      snack: "加餐/饮品",
+      summary: "汇总"
+    };
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    function parseLocalDate(value) {
+      const [year, month, day] = value.split("-").map(Number);
+      return new Date(year, month - 1, day);
+    }
+
+    function formatDateKey(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+
+    function monthKey(date) {
+      return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    function addDays(date, amount) {
+      const next = new Date(date);
+      next.setDate(next.getDate() + amount);
+      return next;
+    }
+
+    function startOfMonth(date) {
+      return new Date(date.getFullYear(), date.getMonth(), 1);
+    }
+
+    function endOfMonth(date) {
+      return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+    }
+
+    function deficitLevel(deficit, maxDeficit) {
+      if (!deficit || deficit <= 0) return 0;
+      const ratio = deficit / Math.max(maxDeficit, 1);
+      if (ratio >= 0.82) return 4;
+      if (ratio >= 0.58) return 3;
+      if (ratio >= 0.34) return 2;
+      return 1;
+    }
+
+    function imageUrl(imagePath) {
+      if (!imagePath) return "";
+      if (/^(https?:|data:|blob:)/.test(imagePath)) return imagePath;
+      if (location.protocol.startsWith("http")) {
+        return `/api/local-image?path=${encodeURIComponent(imagePath)}`;
+      }
+      return `file://${imagePath}`;
+    }
+
+    function mealTypes(days) {
+      const types = new Set(["all"]);
+      days.flatMap(day => day.meals || []).forEach(meal => types.add(meal.type || "snack"));
+      return [...types].filter(type => mealLabels[type]);
+    }
+
+    function renderMealPhoto(meal) {
+      const firstImage = meal.imagePaths?.[0];
+      if (!firstImage) {
+        return `<div class="meal-photo meal-photo-placeholder">${escapeHtml(mealLabels[meal.type] || "餐食")}</div>`;
+      }
+      return `<img class="meal-photo" src="${escapeHtml(imageUrl(firstImage))}" alt="${escapeHtml(meal.title)}">`;
+    }
+
+    function renderMeals(days) {
+      const filters = mealTypes(days);
+      document.getElementById("mealFilters").innerHTML = filters.map(type => `
+        <button class="meal-filter${type === activeMealFilter ? " is-active" : ""}" type="button" data-filter="${escapeHtml(type)}">${escapeHtml(mealLabels[type])}</button>
+      `).join("");
+
+      const daysWithMeals = [...days]
+        .reverse()
+        .map(day => ({
+          ...day,
+          filteredMeals: (day.meals || []).filter(meal => activeMealFilter === "all" || meal.type === activeMealFilter)
+        }))
+        .filter(day => day.filteredMeals.length > 0);
+
+      document.getElementById("mealDays").innerHTML = daysWithMeals.length ? daysWithMeals.map((day, index) => `
+        <details class="meal-day" ${index === 0 ? "open" : ""}>
+          <summary>
+            <span class="meal-day-label">${escapeHtml(day.label)}</span>
+            <span class="meal-day-note">${escapeHtml(day.note || "已记录餐食")}</span>
+            <span class="meal-day-total">${fmt(day.intakeKcal)} kcal</span>
+          </summary>
+          <div class="meal-list">
+            ${day.filteredMeals.map(meal => `
+              <article class="meal-card">
+                ${renderMealPhoto(meal)}
+                <div class="meal-card-main">
+                  <div class="meal-card-head">
+                    <div>
+                      <span class="meal-kind">${escapeHtml(mealLabels[meal.type] || meal.type || "餐食")}</span>
+                      <h3 class="meal-title">${escapeHtml(meal.title)}</h3>
+                    </div>
+                  </div>
+                  <div class="meal-desc">${escapeHtml(meal.description || "")}</div>
+                  <div class="meal-numbers">
+                    <span class="meal-number">${fmt(meal.kcal)} kcal</span>
+                    ${meal.kcalRange ? `<span class="meal-number">${fmt(meal.kcalRange[0])}-${fmt(meal.kcalRange[1])} kcal</span>` : ""}
+                    ${meal.proteinRangeG ? `<span class="meal-number">蛋白 ${fmt(meal.proteinRangeG[0])}-${fmt(meal.proteinRangeG[1])}g</span>` : ""}
+                  </div>
+                  ${meal.source ? `<div class="meal-source">来源：${escapeHtml(meal.source)}</div>` : ""}
+                </div>
+              </article>
+            `).join("")}
+          </div>
+        </details>
+      `).join("") : `<p class="footer-note">当前筛选下暂无餐食记录。</p>`;
+
+      document.querySelectorAll(".meal-filter").forEach(button => {
+        button.addEventListener("click", () => {
+          activeMealFilter = button.dataset.filter;
+          renderMeals(days);
+        });
+      });
+    }
+
+    function buildCalendarDays(days) {
+      const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
+      const first = startOfMonth(parseLocalDate(sorted[0].date));
+      const last = endOfMonth(parseLocalDate(sorted.at(-1).date));
+      const result = [];
+      for (let cursor = first; cursor <= last; cursor = addDays(cursor, 1)) {
+        result.push(new Date(cursor));
+      }
+      return result;
+    }
+
+    function groupDatesByMonth(dates) {
+      const grouped = new Map();
+      dates.forEach(date => {
+        const key = monthKey(date);
+        if (!grouped.has(key)) grouped.set(key, []);
+        grouped.get(key).push(date);
+      });
+      return grouped;
+    }
+
+    function renderDashboard() {
+      const days = data.days;
+      const latest = days.at(-1);
+      const totalDeficit = days.reduce((sum, day) => sum + day.deficitKcal, 0);
+      const todayProtein = avg(latest.proteinRangeG);
+      const proteinCompletion = Math.min(100, Math.round((todayProtein / data.targets.proteinCompletionTargetG) * 100));
+      const maxIntake = Math.max(...days.map(day => day.intakeKcal), data.targets.dailyKcalRange[1]);
+      const maxDeficit = Math.max(...days.map(day => day.deficitKcal));
+      const proteinCloseDays = data.stats?.proteinQualifiedDays ?? days.filter(day => day.proteinRangeG[1] >= data.targets.dailyProteinRangeG[0]).length;
+
+      document.getElementById("periodLabel").textContent = `Nutrition Log · ${data.periodLabel}`;
+      document.getElementById("pageTitle").textContent = data.copy.title;
+      document.getElementById("overviewCopy").textContent = data.copy.overview;
+      document.getElementById("statusPill").textContent =
+        `当前体重 ${data.profile.latestWeightKg}kg · 目标 ${data.profile.targetWeightRangeKg[0]}-${data.profile.targetWeightRangeKg[1]}kg`;
+
+      const metrics = [
+        ["今日摄入", latest.intakeKcal, `目标 ${data.targets.dailyKcalRange[0]}-${data.targets.dailyKcalRange[1]} kcal`],
+        ["今日蛋白", todayProtein, `估算 ${latest.proteinRangeG[0]}-${latest.proteinRangeG[1]}g`],
+        ["今日运动", latest.exerciseKcal, latest.exerciseLabel],
+        ["总缺口", totalDeficit, `${days.length}日主估 kcal`]
+      ];
+
+      document.getElementById("metricGrid").innerHTML = metrics.map(([label, value, note]) => `
+        <div class="metric">
+          <span class="metric-label">${escapeHtml(label)}</span>
+          <span class="metric-value count" data-value="${value}">0</span>
+          <span class="metric-note">${escapeHtml(note)}</span>
+        </div>
+      `).join("");
+
+      document.getElementById("proteinCompletion").dataset.value = proteinCompletion;
+
+      const dayByDate = new Map(days.map(day => [day.date, day]));
+      const calendarDays = buildCalendarDays(days);
+      const months = groupDatesByMonth(calendarDays);
+      document.getElementById("calendarGrid").innerHTML = `
+        <div class="heatmap-meta">
+          <span>每个方格代表一天；颜色越深，热量缺口越大。</span>
+          <span class="heatmap-legend" aria-label="颜色深浅图例">
+            <span>低</span>
+            <span class="legend-chip" style="--c:rgba(206, 238, 221, 0.9)"></span>
+            <span class="legend-chip" style="--c:rgba(145, 213, 179, 0.94)"></span>
+            <span class="legend-chip" style="--c:rgba(65, 170, 114, 0.96)"></span>
+            <span class="legend-chip" style="--c:rgba(11, 83, 56, 0.9)"></span>
+            <span>高</span>
+          </span>
+        </div>
+        ${[...months.entries()].map(([label, monthDays], monthIndex) => {
+          const leadingBlanks = monthDays[0].getDay();
+          const cells = [
+            ...Array.from({ length: leadingBlanks }, (_, index) => `<span class="heatmap-cell is-empty" style="--delay:${index * 10}ms" aria-hidden="true"></span>`),
+            ...monthDays.map((date, index) => {
+              const key = formatDateKey(date);
+              const day = dayByDate.get(key);
+              const level = day ? deficitLevel(day.deficitKcal, maxDeficit) : 0;
+              const title = day
+                ? `${key}：摄入 ${fmt(day.intakeKcal)} kcal，缺口 ${fmt(day.deficitKcal)} kcal`
+                : `${key}：未记录`;
+              return `<span class="heatmap-cell${day ? "" : " is-empty"}" data-level="${level}" title="${escapeHtml(title)}" aria-label="${escapeHtml(title)}" style="--delay:${80 + (monthIndex * 32 + index) * 12}ms"></span>`;
+            })
+          ].join("");
+          return `
+            <div class="month-block">
+              <div class="month-label">${escapeHtml(label)}</div>
+              <div class="heatmap-grid">${cells}</div>
+            </div>
+          `;
+        }).join("")}
+      `;
+
+      document.getElementById("deficitTimeline").innerHTML = days.map((day, index) => {
+        const width = Math.max(8, Math.round((day.deficitKcal / maxDeficit) * 100));
+        const delay = 120 + index * 100;
+        return `
+          <div class="timeline-row">
+            <span>${escapeHtml(day.label)}</span>
+            <div class="timeline-track"><span style="--w:${width}%;--delay:${delay}ms"></span></div>
+            <b>${fmt(day.deficitKcal)}</b>
+          </div>
+        `;
+      }).join("");
+      document.getElementById("deficitFootnote").textContent = data.copy.footnote;
+      renderMeals(days);
+
+      const summaryCards = [
+        [`${fmt(totalDeficit)} kcal`, `${days.length}日累计主估缺口`],
+        [`${proteinCloseDays} / ${days.length}`, "蛋白达标或接近达标天数"],
+        [`${data.profile.latestWeightKg} kg`, "最近一次记录体重"]
+      ];
+      document.getElementById("summaryCards").innerHTML = summaryCards.map(([value, label]) => `
+        <div class="deficit-card">
+          <b>${escapeHtml(value)}</b>
+          <span class="metric-note">${escapeHtml(label)}</span>
+        </div>
+      `).join("");
+
+      document.getElementById("summaryList").innerHTML = data.copy.summary.map(item => `
+        <div class="summary-item"><span class="dot"></span><span>${escapeHtml(item)}</span></div>
+      `).join("");
+
+      document.getElementById("proteinRing").style.setProperty("--angle", `${Math.round(proteinCompletion * 3.6)}deg`);
+    }
+
+    function animateNumber(el) {
+      const target = Number(el.dataset.value || 0);
+      const duration = 1200;
+      const start = performance.now();
+
+      function tick(now) {
+        const p = Math.max(0, Math.min(1, (now - start) / duration));
+        const value = Math.round(target * easeOutCubic(p));
+        el.textContent = value.toLocaleString("zh-CN");
+        if (p < 1) requestAnimationFrame(tick);
+      }
+      requestAnimationFrame(tick);
+    }
+
+    async function loadDashboardData() {
+      if (!location.protocol.startsWith("http")) return data;
+
+      try {
+        const response = await fetch("/api/health-data", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } catch (error) {
+        console.warn("Using embedded fallback dashboard data:", error);
+        return data;
+      }
+    }
+
+    loadDashboardData().then(loadedData => {
+      data = loadedData;
+      renderDashboard();
+      document.querySelectorAll(".count").forEach(animateNumber);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+.DS_Store
+node_modules/
+*.log
+*.err.log
+
+# Local FitMe runtime data; do not commit personal health records.
+health_dashboard_data.json
+health_dashboard_data.js
+fitness_daily_log.md
+health_images/
