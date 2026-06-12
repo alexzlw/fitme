@@ -9,6 +9,7 @@ const skillRoot = path.resolve(__dirname, "..");
 const assetsRoot = path.join(skillRoot, "assets");
 const defaultRoot = path.join(os.homedir(), "Documents", "FitMe");
 const defaultPort = 8787;
+const isWindows = process.platform === "win32";
 
 function arg(name, fallback = undefined) {
   const prefix = `--${name}=`;
@@ -33,7 +34,8 @@ function paths(root = fitmeRoot()) {
     server: path.join(root, "health_dashboard_server.js"),
     images: path.join(root, "health_images"),
     log: path.join(root, "fitness_daily_log.md"),
-    launchAgent: path.join(os.homedir(), "Library", "LaunchAgents", "com.codex.fitme.plist")
+    launchAgent: path.join(os.homedir(), "Library", "LaunchAgents", "com.fitme.dashboard.plist"),
+    windowsStarter: path.join(root, "start-fitme.cmd")
   };
 }
 
@@ -153,13 +155,16 @@ function start() {
 }
 
 async function installLaunchd() {
+  if (isWindows) {
+    throw new Error("install-launchd is macOS only. Use install-startup on Windows.");
+  }
   const p = paths();
   await fsp.mkdir(path.dirname(p.launchAgent), { recursive: true });
   const plist = `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-  <key>Label</key><string>com.codex.fitme</string>
+  <key>Label</key><string>com.fitme.dashboard</string>
   <key>ProgramArguments</key>
   <array>
     <string>${process.execPath}</string>
@@ -182,10 +187,42 @@ async function installLaunchd() {
   console.log(JSON.stringify({ ok: true, plist: p.launchAgent, loadCommand: `launchctl bootstrap gui/$(id -u) ${p.launchAgent}` }, null, 2));
 }
 
+async function writeWindowsStarter(p = paths()) {
+  const port = String(arg("port", defaultPort));
+  const script = `@echo off\r\nset PORT=${port}\r\nset HOST=127.0.0.1\r\ncd /d "${p.root}"\r\n"${process.execPath}" "${p.server}"\r\n`;
+  await fsp.writeFile(p.windowsStarter, script, "utf8");
+  return p.windowsStarter;
+}
+
+async function installWindowsStartup() {
+  if (!isWindows) {
+    throw new Error("install-startup is Windows only. Use install-launchd on macOS.");
+  }
+  const p = paths();
+  await writeWindowsStarter(p);
+  const child = spawn("reg", [
+    "add",
+    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
+    "/v",
+    "FitMeDashboard",
+    "/t",
+    "REG_SZ",
+    "/d",
+    `"${p.windowsStarter}"`,
+    "/f"
+  ], { stdio: "inherit" });
+  await new Promise((resolve, reject) => {
+    child.on("exit", code => code === 0 ? resolve() : reject(new Error(`reg add exited with ${code}`)));
+    child.on("error", reject);
+  });
+  console.log(JSON.stringify({ ok: true, starter: p.windowsStarter, registry: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\FitMeDashboard" }, null, 2));
+}
+
 async function setup() {
   const p = paths();
   const alreadyFound = await exists(p.data) && await exists(p.html) && await exists(p.server);
   if (!alreadyFound) await init();
+  if (isWindows) await writeWindowsStarter(p);
   const service = spawn(process.execPath, [p.server], {
     cwd: p.root,
     env: { ...process.env, PORT: String(arg("port", defaultPort)), HOST: "127.0.0.1" },
@@ -194,6 +231,7 @@ async function setup() {
   });
   service.unref();
   if (boolArg("launchd")) await installLaunchd();
+  if (boolArg("startup")) await installWindowsStartup();
   console.log(JSON.stringify({
     ok: true,
     foundExisting: alreadyFound,
@@ -303,8 +341,9 @@ async function main() {
   if (cmd === "setup") return setup();
   if (cmd === "start") return start();
   if (cmd === "install-launchd") return installLaunchd();
+  if (cmd === "install-startup") return installWindowsStartup();
   if (cmd === "add-meal") return addMeal();
-  throw new Error("Usage: fitme.js detect|init|setup|start|install-launchd|add-meal [--root=...]");
+  throw new Error("Usage: fitme.js detect|init|setup|start|install-launchd|install-startup|add-meal [--root=...]");
 }
 
 main().catch(error => {

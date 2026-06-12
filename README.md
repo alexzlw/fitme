@@ -10,7 +10,10 @@
 
 ![Codex](https://img.shields.io/badge/Codex-Skill-10B981?style=flat-square&logo=openai&logoColor=white)
 ![Claude Code](https://img.shields.io/badge/Claude_Code-Skill-D97706?style=flat-square&logo=anthropic&logoColor=white)
+![OpenCode](https://img.shields.io/badge/OpenCode-Skill-3B82F6?style=flat-square)
+![OpenClaw](https://img.shields.io/badge/OpenClaw-Skill-8B5CF6?style=flat-square)
 ![macOS](https://img.shields.io/badge/macOS-LaunchAgent-111827?style=flat-square&logo=apple&logoColor=white)
+![Windows](https://img.shields.io/badge/Windows-Startup-2563EB?style=flat-square&logo=windows&logoColor=white)
 
 </div>
 
@@ -68,19 +71,40 @@ FitMe 自带一个轻量 Web Dashboard：
 
 ## 安装方式
 
-在支持 `SKILL.md` 的 Agent 里直接说：
+在支持 `SKILL.md` / Agent Skills 结构的 Agent 里直接说：
 
 ```text
 帮我安装这个 skill：https://github.com/Stormycry-cryp/Fitme/tree/main/fitme
 ```
 
-或者手动 clone：
+如果你的 Agent 能自动安装，它应该会自己 clone 到对应目录。  
+如果要手动安装，常见目录如下：
+
+| Agent | 常见安装目录 |
+|---|---|
+| Codex | `~/.codex/skills/fitme` |
+| Claude Code | `~/.claude/skills/fitme` |
+| OpenCode | `~/.config/opencode/skills/fitme` |
+| OpenClaw | `~/.openclaw/skills/fitme` |
+| 其他 Agent | 放到它能扫描 `SKILL.md` 的 skills 目录 |
+
+macOS / Linux 示例：
 
 ```bash
 git clone https://github.com/Stormycry-cryp/Fitme.git
 mkdir -p ~/.codex/skills
 cp -R Fitme/fitme ~/.codex/skills/fitme
 ```
+
+Windows PowerShell 示例：
+
+```powershell
+git clone https://github.com/Stormycry-cryp/Fitme.git
+New-Item -ItemType Directory -Force "$env:USERPROFILE\.codex\skills" | Out-Null
+Copy-Item -Recurse -Force .\Fitme\fitme "$env:USERPROFILE\.codex\skills\fitme"
+```
+
+如果你用的不是 Codex，把上面的 `.codex\skills` 换成对应 Agent 的 skills 目录即可。
 
 ---
 
@@ -95,7 +119,7 @@ cp -R Fitme/fitme ~/.codex/skills/fitme
 Agent 会调用：
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js setup \
+node <fitme-skill-folder>/scripts/fitme.js setup \
   --sex=male \
   --age=30 \
   --heightCm=175 \
@@ -126,29 +150,36 @@ Agent 应该先检测已有站点，然后直接把当天数据写进去。
 检测是否已经初始化过：
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js detect
+node <fitme-skill-folder>/scripts/fitme.js detect
 ```
 
 一步初始化并后台启动：
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js setup \
+node <fitme-skill-folder>/scripts/fitme.js setup \
   --sex=male \
   --age=30 \
   --heightCm=175 \
   --weightKg=70
 ```
 
+Windows PowerShell：
+
+```powershell
+node <fitme-skill-folder>\scripts\fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70
+start http://127.0.0.1:8787/health_progress_dashboard.html
+```
+
 启动本地服务：
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js start --detach
+node <fitme-skill-folder>/scripts/fitme.js start --detach
 ```
 
 写入一餐：
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js add-meal \
+node <fitme-skill-folder>/scripts/fitme.js add-meal \
   --type=dinner \
   --title="香煎秋刀鱼能量碗" \
   --description="加鸡胸肉，混合沙拉菜" \
@@ -165,8 +196,14 @@ node ~/.codex/skills/fitme/scripts/fitme.js add-meal \
 生成 macOS 开机自启配置：
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js install-launchd
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.codex.fitme.plist
+node <fitme-skill-folder>/scripts/fitme.js install-launchd
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fitme.dashboard.plist
+```
+
+生成 Windows 开机自启配置：
+
+```powershell
+node <fitme-skill-folder>\scripts\fitme.js install-startup
 ```
 
 ---
@@ -177,6 +214,12 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.codex.fitme.plist
 
 ```text
 ~/Documents/FitMe
+```
+
+Windows 下等价于：
+
+```text
+%USERPROFILE%\Documents\FitMe
 ```
 
 主要文件：

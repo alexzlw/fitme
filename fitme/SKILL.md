@@ -1,11 +1,11 @@
 ---
 name: fitme
-description: Use when a user wants a local persistent diet, calorie, protein, exercise, or health dashboard; asks to initialize FitMe from height/weight/sex/age; asks to record today's meals into an existing FitMe site; or wants a local web page with images, daily meal details, long-term deficit calendar, and boot auto-start.
+description: Use when any Agent needs a local persistent diet, calorie, protein, exercise, or health dashboard; asks to initialize FitMe from height/weight/sex/age; asks to record today's meals into an existing FitMe site; or wants a local web page with images, daily meal details, long-term deficit calendar, and macOS/Windows boot auto-start.
 ---
 
 # FitMe
 
-FitMe is a reusable local health tracker: a persistent web dashboard plus JSON-backed food/exercise logging. Use it to initialize a user's local dashboard, detect an existing dashboard, and append confirmed meals to today's record.
+FitMe is a reusable local health tracker: a persistent web dashboard plus JSON-backed food/exercise logging. It is Agent-agnostic: Codex, Claude Code, OpenCode, OpenClaw, Cursor-style agents, or any agent that can read `SKILL.md` and run shell commands can use it.
 
 ## Core Rules
 
@@ -27,7 +27,7 @@ The dashboard is a local HTML/CSS/JS app with:
 
 ## Storage Layout
 
-Default root:
+Default runtime root:
 
 ```text
 ~/Documents/FitMe
@@ -86,10 +86,21 @@ Data model:
 
 ## Workflow
 
+Use the actual installed skill path for the current Agent. Common examples:
+
+```text
+Codex:       ~/.codex/skills/fitme
+Claude Code: ~/.claude/skills/fitme
+OpenCode:    ~/.config/opencode/skills/fitme
+OpenClaw:    ~/.openclaw/skills/fitme
+```
+
+If unsure, locate the current `SKILL.md` and run `node <that-folder>/scripts/fitme.js ...`.
+
 1. Detect existing dashboard first:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js detect
+node <fitme-skill-folder>/scripts/fitme.js detect
 ```
 
 2. If not found, ask only for required baseline:
@@ -101,42 +112,55 @@ node ~/.codex/skills/fitme/scripts/fitme.js detect
 Then initialize and start in one step:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70
+node <fitme-skill-folder>/scripts/fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70
 open http://127.0.0.1:8787/health_progress_dashboard.html
 ```
 
-For setup with boot auto-start:
+For macOS setup with boot auto-start:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70 --launchd
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.codex.fitme.plist
+node <fitme-skill-folder>/scripts/fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70 --launchd
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fitme.dashboard.plist
 open http://127.0.0.1:8787/health_progress_dashboard.html
+```
+
+For Windows setup with startup auto-run:
+
+```powershell
+node <fitme-skill-folder>\scripts\fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70 --startup
+start http://127.0.0.1:8787/health_progress_dashboard.html
 ```
 
 If you need separate steps:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js init --sex=male --age=30 --heightCm=175 --weightKg=70
+node <fitme-skill-folder>/scripts/fitme.js init --sex=male --age=30 --heightCm=175 --weightKg=70
 ```
 
 3. Start local server and open:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js start --detach
+node <fitme-skill-folder>/scripts/fitme.js start --detach
 open http://127.0.0.1:8787/health_progress_dashboard.html
 ```
 
 4. Install macOS boot background service when requested:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js install-launchd
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.codex.fitme.plist
+node <fitme-skill-folder>/scripts/fitme.js install-launchd
+launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fitme.dashboard.plist
+```
+
+Windows boot background service when requested:
+
+```powershell
+node <fitme-skill-folder>\scripts\fitme.js install-startup
 ```
 
 5. Add a confirmed meal:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js add-meal \
+node <fitme-skill-folder>/scripts/fitme.js add-meal \
   --type=dinner \
   --title="香煎秋刀鱼能量碗" \
   --description="加鸡胸肉，混合沙拉菜" \
@@ -162,7 +186,7 @@ If `detect` returns `found: true`, do not reinitialize. Use `add-meal` for confi
 If the server is not reachable, run:
 
 ```bash
-node ~/.codex/skills/fitme/scripts/fitme.js start --detach
+node <fitme-skill-folder>/scripts/fitme.js start --detach
 ```
 
 If static `health_dashboard_data.js` is stale, any `add-meal` or `init` command regenerates it from JSON.
