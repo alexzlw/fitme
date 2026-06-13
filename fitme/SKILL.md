@@ -1,6 +1,6 @@
 ---
 name: fitme
-description: Use when any Agent needs a local persistent diet, calorie, protein, exercise, or health dashboard; asks to initialize FitMe from height/weight/sex/age; asks to record today's meals into an existing FitMe site; or wants a local web page with images, daily meal details, long-term deficit calendar, and macOS/Windows boot auto-start.
+description: Use when any Agent needs a local persistent diet, calorie, protein, exercise, or health dashboard; asks to initialize FitMe from height/weight/sex/age; asks to record today's meals into an existing FitMe site; or wants a local web page with images, daily meal details, long-term deficit calendar, stable listening, and macOS/Windows/Linux boot auto-start.
 ---
 
 # FitMe
@@ -43,6 +43,12 @@ health_dashboard_data.js     # static fallback generated from JSON
 fitness_daily_log.md         # prose log
 health_images/               # copied durable meal images
 ```
+
+Stable background service:
+
+- macOS: LaunchAgent with `KeepAlive` and `RunAtLoad`.
+- Linux: user systemd service with `Restart=always`.
+- Windows: Task Scheduler task at logon with restart-on-failure settings and a generated `start-fitme.cmd`.
 
 Data model:
 
@@ -109,25 +115,32 @@ node <fitme-skill-folder>/scripts/fitme.js detect
 性别、年龄、身高cm、体重kg
 ```
 
-Then initialize and start in one step:
+Then initialize and install the stable background service in one step:
 
 ```bash
-node <fitme-skill-folder>/scripts/fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70
+node <fitme-skill-folder>/scripts/fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70 --service
 open http://127.0.0.1:8787/health_progress_dashboard.html
 ```
 
-For macOS setup with boot auto-start:
+This auto-selects the OS service manager. Use this by default.
+
+Check service registration and HTTP availability:
 
 ```bash
-node <fitme-skill-folder>/scripts/fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70 --launchd
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fitme.dashboard.plist
-open http://127.0.0.1:8787/health_progress_dashboard.html
+node <fitme-skill-folder>/scripts/fitme.js status
 ```
 
-For Windows setup with startup auto-run:
+OS-specific alternatives:
+
+```bash
+node <fitme-skill-folder>/scripts/fitme.js install-launchd   # macOS
+node <fitme-skill-folder>/scripts/fitme.js install-systemd   # Linux
+```
+
+Windows:
 
 ```powershell
-node <fitme-skill-folder>\scripts\fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70 --startup
+node <fitme-skill-folder>\scripts\fitme.js install-startup
 start http://127.0.0.1:8787/health_progress_dashboard.html
 ```
 
@@ -144,17 +157,16 @@ node <fitme-skill-folder>/scripts/fitme.js start --detach
 open http://127.0.0.1:8787/health_progress_dashboard.html
 ```
 
-4. Install macOS boot background service when requested:
+4. Install stable boot background service when requested:
 
 ```bash
-node <fitme-skill-folder>/scripts/fitme.js install-launchd
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fitme.dashboard.plist
+node <fitme-skill-folder>/scripts/fitme.js install-service
 ```
 
-Windows boot background service when requested:
+Then check:
 
-```powershell
-node <fitme-skill-folder>\scripts\fitme.js install-startup
+```bash
+node <fitme-skill-folder>/scripts/fitme.js status
 ```
 
 5. Add a confirmed meal:
@@ -186,7 +198,7 @@ If `detect` returns `found: true`, do not reinitialize. Use `add-meal` for confi
 If the server is not reachable, run:
 
 ```bash
-node <fitme-skill-folder>/scripts/fitme.js start --detach
+node <fitme-skill-folder>/scripts/fitme.js install-service
 ```
 
 If static `health_dashboard_data.js` is stale, any `add-meal` or `init` command regenerates it from JSON.

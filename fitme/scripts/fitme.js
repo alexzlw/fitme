@@ -3,6 +3,7 @@ const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
 const os = require("os");
+const http = require("http");
 const { spawn } = require("child_process");
 
 const skillRoot = path.resolve(__dirname, "..");
@@ -10,6 +11,9 @@ const assetsRoot = path.join(skillRoot, "assets");
 const defaultRoot = path.join(os.homedir(), "Documents", "FitMe");
 const defaultPort = 8787;
 const isWindows = process.platform === "win32";
+const isMac = process.platform === "darwin";
+const isLinux = process.platform === "linux";
+const serviceName = "fitme-dashboard";
 
 function arg(name, fallback = undefined) {
   const prefix = `--${name}=`;
@@ -35,7 +39,73 @@ function paths(root = fitmeRoot()) {
     images: path.join(root, "health_images"),
     log: path.join(root, "fitness_daily_log.md"),
     launchAgent: path.join(os.homedir(), "Library", "LaunchAgents", "com.fitme.dashboard.plist"),
-    windowsStarter: path.join(root, "start-fitme.cmd")
+    windowsStarter: path.join(root, "start-fitme.cmd"),
+    windowsTaskXml: path.join(root, "fitme-dashboard-task.xml"),
+    systemdUserDir: path.join(os.homedir(), ".config", "systemd", "user"),
+    systemdUnit: path.join(os.homedir(), ".config", "systemd", "user", "fitme-dashboard.service")
+  };
+}
+
+function serviceUrl() {
+  return `http://127.0.0.1:${arg("port", defaultPort)}/health_progress_dashboard.html`;
+}
+
+function run(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, { stdio: options.stdio || "pipe", shell: options.shell || false });
+    let stdout = "";
+    let stderr = "";
+    child.stdout?.on("data", chunk => { stdout += chunk; });
+    child.stderr?.on("data", chunk => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("exit", code => {
+      if (code === 0 || options.allowFailure) resolve({ code, stdout, stderr });
+      else reject(new Error(`${command} ${args.join(" ")} exited ${code}: ${stderr || stdout}`));
+    });
+  });
+}
+
+function requestJson(pathname) {
+  const port = Number(arg("port", defaultPort));
+  return new Promise(resolve => {
+    const req = http.get({
+      host: "127.0.0.1",
+      port,
+      path: pathname,
+      timeout: 1500
+    }, res => {
+      let body = "";
+      res.on("data", chunk => { body += chunk; });
+      res.on("end", () => {
+        try {
+          resolve({ ok: res.statusCode === 200, data: JSON.parse(body) });
+        } catch {
+          resolve({ ok: res.statusCode === 200, data: null });
+        }
+      });
+    });
+    req.on("timeout", () => {
+      req.destroy();
+      resolve({ ok: false, data: null });
+    });
+    req.on("error", () => resolve({ ok: false, data: null }));
+  });
+}
+
+async function checkHttp(root) {
+  const status = await requestJson("/api/status");
+  if (status.ok && status.data?.root) {
+    return {
+      ok: true,
+      matchesRoot: path.resolve(status.data.root) === path.resolve(root),
+      root: status.data.root
+    };
+  }
+  const healthData = await requestJson("/api/health-data");
+  return {
+    ok: healthData.ok,
+    matchesRoot: null,
+    root: null
   };
 }
 
@@ -125,7 +195,7 @@ async function init() {
     const data = await readJson(p.data);
     await writeData(data, p);
   }
-  console.log(JSON.stringify({ ok: true, root: p.root, url: `http://127.0.0.1:${arg("port", defaultPort)}/health_progress_dashboard.html` }, null, 2));
+  console.log(JSON.stringify({ ok: true, root: p.root, url: serviceUrl() }, null, 2));
 }
 
 async function detect() {
@@ -135,7 +205,7 @@ async function detect() {
   console.log(JSON.stringify({
     found,
     root: p.root,
-    url: `http://127.0.0.1:${arg("port", defaultPort)}/health_progress_dashboard.html`,
+    url: serviceUrl(),
     latestDate: data?.days?.at(-1)?.date || data?.updatedAt || null,
     dayCount: data?.days?.length || 0
   }, null, 2));
@@ -155,8 +225,8 @@ function start() {
 }
 
 async function installLaunchd() {
-  if (isWindows) {
-    throw new Error("install-launchd is macOS only. Use install-startup on Windows.");
+  if (!isMac) {
+    throw new Error("install-launchd is macOS only. Use install-service for current OS auto-detection.");
   }
   const p = paths();
   await fsp.mkdir(path.dirname(p.launchAgent), { recursive: true });
@@ -184,7 +254,10 @@ async function installLaunchd() {
 </plist>
 `;
   await fsp.writeFile(p.launchAgent, plist, "utf8");
-  console.log(JSON.stringify({ ok: true, plist: p.launchAgent, loadCommand: `launchctl bootstrap gui/$(id -u) ${p.launchAgent}` }, null, 2));
+  await run("launchctl", ["bootout", `gui/${process.getuid()}`, p.launchAgent], { allowFailure: true });
+  await run("launchctl", ["bootstrap", `gui/${process.getuid()}`, p.launchAgent]);
+  await run("launchctl", ["kickstart", "-k", `gui/${process.getuid()}/com.fitme.dashboard`], { allowFailure: true });
+  console.log(JSON.stringify({ ok: true, service: "launchd", plist: p.launchAgent, url: serviceUrl() }, null, 2));
 }
 
 async function writeWindowsStarter(p = paths()) {
@@ -196,31 +269,152 @@ async function writeWindowsStarter(p = paths()) {
 
 async function installWindowsStartup() {
   if (!isWindows) {
-    throw new Error("install-startup is Windows only. Use install-launchd on macOS.");
+    throw new Error("install-startup is Windows only. Use install-service for current OS auto-detection.");
   }
   const p = paths();
   await writeWindowsStarter(p);
-  const child = spawn("reg", [
-    "add",
-    "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run",
-    "/v",
-    "FitMeDashboard",
-    "/t",
-    "REG_SZ",
-    "/d",
-    `"${p.windowsStarter}"`,
-    "/f"
-  ], { stdio: "inherit" });
-  await new Promise((resolve, reject) => {
-    child.on("exit", code => code === 0 ? resolve() : reject(new Error(`reg add exited with ${code}`)));
-    child.on("error", reject);
-  });
-  console.log(JSON.stringify({ ok: true, starter: p.windowsStarter, registry: "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\FitMeDashboard" }, null, 2));
+  const xml = `<?xml version="1.0" encoding="UTF-16"?>
+<Task version="1.4" xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Description>FitMe local health dashboard</Description>
+  </RegistrationInfo>
+  <Triggers>
+    <LogonTrigger>
+      <Enabled>true</Enabled>
+    </LogonTrigger>
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <LogonType>InteractiveToken</LogonType>
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy>
+    <DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>
+    <StopIfGoingOnBatteries>false</StopIfGoingOnBatteries>
+    <AllowHardTerminate>true</AllowHardTerminate>
+    <StartWhenAvailable>true</StartWhenAvailable>
+    <RunOnlyIfNetworkAvailable>false</RunOnlyIfNetworkAvailable>
+    <IdleSettings>
+      <StopOnIdleEnd>false</StopOnIdleEnd>
+      <RestartOnIdle>false</RestartOnIdle>
+    </IdleSettings>
+    <AllowStartOnDemand>true</AllowStartOnDemand>
+    <Enabled>true</Enabled>
+    <Hidden>false</Hidden>
+    <ExecutionTimeLimit>PT0S</ExecutionTimeLimit>
+    <RestartOnFailure>
+      <Interval>PT1M</Interval>
+      <Count>999</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>${escapeXml(p.windowsStarter)}</Command>
+      <WorkingDirectory>${escapeXml(p.root)}</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
+`;
+  await fsp.writeFile(p.windowsTaskXml, `\ufeff${xml}`, "utf16le");
+  await run("schtasks.exe", ["/Delete", "/TN", "FitMeDashboard", "/F"], { allowFailure: true });
+  await run("schtasks.exe", ["/Create", "/TN", "FitMeDashboard", "/XML", p.windowsTaskXml, "/F"]);
+  await run("schtasks.exe", ["/Run", "/TN", "FitMeDashboard"], { allowFailure: true });
+  console.log(JSON.stringify({ ok: true, service: "windows-task-scheduler", task: "FitMeDashboard", starter: p.windowsStarter, url: serviceUrl() }, null, 2));
+}
+
+function escapeXml(value) {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&apos;");
+}
+
+async function installSystemdUser() {
+  if (!isLinux) {
+    throw new Error("install-systemd is Linux only. Use install-service for current OS auto-detection.");
+  }
+  const p = paths();
+  await fsp.mkdir(p.systemdUserDir, { recursive: true });
+  const unit = `[Unit]
+Description=FitMe local health dashboard
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=${p.root}
+Environment=PORT=${arg("port", defaultPort)}
+Environment=HOST=127.0.0.1
+ExecStart=${process.execPath} ${p.server}
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=default.target
+`;
+  await fsp.writeFile(p.systemdUnit, unit, "utf8");
+  await run("systemctl", ["--user", "daemon-reload"]);
+  await run("systemctl", ["--user", "enable", "--now", "fitme-dashboard.service"]);
+  await run("loginctl", ["enable-linger", os.userInfo().username], { allowFailure: true });
+  console.log(JSON.stringify({ ok: true, service: "systemd-user", unit: p.systemdUnit, url: serviceUrl() }, null, 2));
+}
+
+async function installService() {
+  await init();
+  if (isMac) return installLaunchd();
+  if (isWindows) return installWindowsStartup();
+  if (isLinux) return installSystemdUser();
+  throw new Error(`Unsupported platform for install-service: ${process.platform}`);
+}
+
+async function status() {
+  const p = paths();
+  let service = "manual";
+  let serviceState = "unknown";
+  if (isMac) {
+    const result = await run("launchctl", ["print", `gui/${process.getuid()}/com.fitme.dashboard`], { allowFailure: true });
+    service = "launchd";
+    serviceState = result.code === 0 && result.stdout.includes("state = running") ? "running" : "not-running";
+  } else if (isWindows) {
+    const result = await run("schtasks.exe", ["/Query", "/TN", "FitMeDashboard"], { allowFailure: true });
+    service = "windows-task-scheduler";
+    serviceState = result.code === 0 ? "registered" : "not-registered";
+  } else if (isLinux) {
+    const result = await run("systemctl", ["--user", "is-active", "fitme-dashboard.service"], { allowFailure: true });
+    service = "systemd-user";
+    serviceState = result.stdout.trim() || "not-running";
+  }
+  const httpStatus = await checkHttp(p.root);
+  console.log(JSON.stringify({
+    ok: true,
+    platform: process.platform,
+    service,
+    serviceState,
+    httpOk: httpStatus.ok,
+    httpMatchesRoot: httpStatus.matchesRoot,
+    httpRoot: httpStatus.root,
+    root: p.root,
+    url: serviceUrl()
+  }, null, 2));
 }
 
 async function setup() {
   const p = paths();
   const alreadyFound = await exists(p.data) && await exists(p.html) && await exists(p.server);
+  if (boolArg("service")) {
+    await installService();
+    console.log(JSON.stringify({
+      ok: true,
+      foundExisting: alreadyFound,
+      root: p.root,
+      service: true,
+      url: serviceUrl()
+    }, null, 2));
+    return;
+  }
   if (!alreadyFound) await init();
   if (isWindows) await writeWindowsStarter(p);
   const service = spawn(process.execPath, [p.server], {
@@ -231,7 +425,7 @@ async function setup() {
   });
   service.unref();
   if (boolArg("launchd")) await installLaunchd();
-  if (boolArg("startup")) await installWindowsStartup();
+  else if (boolArg("startup")) await installWindowsStartup();
   console.log(JSON.stringify({
     ok: true,
     foundExisting: alreadyFound,
@@ -339,11 +533,14 @@ async function main() {
   if (cmd === "detect") return detect();
   if (cmd === "init") return init();
   if (cmd === "setup") return setup();
+  if (cmd === "status") return status();
   if (cmd === "start") return start();
+  if (cmd === "install-service") return installService();
   if (cmd === "install-launchd") return installLaunchd();
   if (cmd === "install-startup") return installWindowsStartup();
+  if (cmd === "install-systemd") return installSystemdUser();
   if (cmd === "add-meal") return addMeal();
-  throw new Error("Usage: fitme.js detect|init|setup|start|install-launchd|install-startup|add-meal [--root=...]");
+  throw new Error("Usage: fitme.js detect|init|setup|status|start|install-service|install-launchd|install-startup|install-systemd|add-meal [--root=...]");
 }
 
 main().catch(error => {

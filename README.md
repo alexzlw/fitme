@@ -14,6 +14,7 @@
 ![OpenClaw](https://img.shields.io/badge/OpenClaw-Skill-8B5CF6?style=flat-square)
 ![macOS](https://img.shields.io/badge/macOS-LaunchAgent-111827?style=flat-square&logo=apple&logoColor=white)
 ![Windows](https://img.shields.io/badge/Windows-Startup-2563EB?style=flat-square&logo=windows&logoColor=white)
+![Linux](https://img.shields.io/badge/Linux-systemd-16A34A?style=flat-square&logo=linux&logoColor=white)
 
 </div>
 
@@ -64,6 +65,12 @@ FitMe 的思路很简单：
 - 每日每餐明细
 - 餐食图片
 - 食物来源和估算依据
+
+它也会把本地页面注册成稳定后台服务：
+
+- macOS：LaunchAgent，`RunAtLoad + KeepAlive`
+- Linux：user systemd，`Restart=always`
+- Windows：任务计划程序，登录启动并配置失败重启
 
 ---
 
@@ -137,7 +144,8 @@ node <fitme-skill-folder>/scripts/fitme.js setup \
   --sex=male \
   --age=30 \
   --heightCm=175 \
-  --weightKg=70
+  --weightKg=70 \
+  --service
 ```
 
 然后打开：
@@ -167,24 +175,31 @@ Agent 应该先检测已有站点，然后直接把当天数据写进去。
 node <fitme-skill-folder>/scripts/fitme.js detect
 ```
 
-一步初始化并后台启动：
+一步初始化并安装稳定后台服务：
 
 ```bash
 node <fitme-skill-folder>/scripts/fitme.js setup \
   --sex=male \
   --age=30 \
   --heightCm=175 \
-  --weightKg=70
+  --weightKg=70 \
+  --service
 ```
 
 Windows PowerShell：
 
 ```powershell
-node <fitme-skill-folder>\scripts\fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70
+node <fitme-skill-folder>\scripts\fitme.js setup --sex=male --age=30 --heightCm=175 --weightKg=70 --service
 start http://127.0.0.1:8787/health_progress_dashboard.html
 ```
 
-启动本地服务：
+检查后台服务和 HTTP 页面是否正常：
+
+```bash
+node <fitme-skill-folder>/scripts/fitme.js status
+```
+
+临时启动本地服务（不注册开机自启）：
 
 ```bash
 node <fitme-skill-folder>/scripts/fitme.js start --detach
@@ -207,14 +222,27 @@ node <fitme-skill-folder>/scripts/fitme.js add-meal \
   --source="订单截图 + 实拍 + 估算"
 ```
 
-生成 macOS 开机自启配置：
+自动按系统安装稳定后台服务：
+
+```bash
+node <fitme-skill-folder>/scripts/fitme.js install-service
+```
+
+也可以使用系统专用命令。
+
+macOS：
 
 ```bash
 node <fitme-skill-folder>/scripts/fitme.js install-launchd
-launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.fitme.dashboard.plist
 ```
 
-生成 Windows 开机自启配置：
+Linux：
+
+```bash
+node <fitme-skill-folder>/scripts/fitme.js install-systemd
+```
+
+Windows：
 
 ```powershell
 node <fitme-skill-folder>\scripts\fitme.js install-startup

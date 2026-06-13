@@ -115,6 +115,16 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    if (url.pathname === "/api/status" && req.method === "GET") {
+      send(res, 200, JSON.stringify({
+        ok: true,
+        root,
+        dataPath,
+        url: `http://${host}:${port}/health_progress_dashboard.html`
+      }), "application/json; charset=utf-8");
+      return;
+    }
+
     if (url.pathname === "/api/local-image" && (req.method === "GET" || req.method === "HEAD")) {
       await serveLocalImage(url, res);
       return;
