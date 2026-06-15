@@ -14,6 +14,16 @@ const isWindows = process.platform === "win32";
 const isMac = process.platform === "darwin";
 const isLinux = process.platform === "linux";
 const serviceName = "fitme-dashboard";
+const nutritionFields = [
+  "fiberG",
+  "sodiumMg",
+  "calciumMg",
+  "potassiumMg",
+  "ironMg",
+  "vitaminCMg",
+  "vitaminDMcg",
+  "vitaminB12Mcg"
+];
 
 function arg(name, fallback = undefined) {
   const prefix = `--${name}=`;
@@ -133,7 +143,17 @@ function defaultData(profile) {
     targets: {
       dailyKcalRange: profile.dailyKcalRange || [1600, 1900],
       dailyProteinRangeG: profile.dailyProteinRangeG || [90, 120],
-      proteinCompletionTargetG: profile.proteinCompletionTargetG || 108
+      proteinCompletionTargetG: profile.proteinCompletionTargetG || 108,
+      nutrition: {
+        fiberG: [25, 35],
+        sodiumMgMax: 2000,
+        calciumMg: [800, 1000],
+        potassiumMg: [2000, 3500],
+        ironMg: [10, 15],
+        vitaminCMg: [100, 200],
+        vitaminDMcg: [10, 20],
+        vitaminB12Mcg: [2.4, 5]
+      }
     },
     stats: { proteinQualifiedDays: 0 },
     copy: {
@@ -453,6 +473,49 @@ async function persistImages(imageArgs, p) {
   return result;
 }
 
+function parseNutritionArgs() {
+  const nutrition = {};
+  for (const key of nutritionFields) {
+    const value = arg(key);
+    if (value != null && value !== "") nutrition[key] = Number(value);
+  }
+  return Object.keys(nutrition).length ? nutrition : null;
+}
+
+function summarizeNutrition(meals) {
+  const mealsWithNutrition = meals.filter(meal => meal.nutrition);
+  if (!mealsWithNutrition.length) return null;
+  const result = {};
+  for (const key of nutritionFields) {
+    const mealsWithField = mealsWithNutrition.filter(meal => meal.nutrition?.[key] != null);
+    if (!mealsWithField.length) continue;
+    const value = mealsWithField.reduce((sum, meal) => sum + Number(meal.nutrition[key]), 0);
+    result[key] = Math.round(value * 10) / 10;
+  }
+  return result;
+}
+
+function nutritionAdvice(nutrition, targets = {}) {
+  if (!nutrition) return [];
+  const advice = [];
+  if (nutrition.fiberG < (targets.fiberG?.[0] ?? 25)) {
+    advice.push("膳食纤维偏低，下一餐优先加蔬菜、菌菇、豆制品或全谷物。");
+  }
+  if (nutrition.sodiumMg > (targets.sodiumMgMax ?? 2000) * 0.72) {
+    advice.push("钠已经不低，后面少酱少汤，今天多喝水。");
+  }
+  if (nutrition.calciumMg < (targets.calciumMg?.[0] ?? 800)) {
+    advice.push("钙偏低，可用无糖酸奶、牛奶、豆腐或小鱼虾补一点。");
+  }
+  if (nutrition.vitaminDMcg < (targets.vitaminDMcg?.[0] ?? 10)) {
+    advice.push("维生素D偏低，鸡蛋、鱼类和日晒更有帮助。");
+  }
+  if (nutrition.vitaminCMg < (targets.vitaminCMg?.[0] ?? 100)) {
+    advice.push("维生素C还可以补，优先真实水果或绿叶菜。");
+  }
+  return advice.slice(0, 4);
+}
+
 async function addMeal() {
   const p = paths();
   const data = await readJson(p.data);
@@ -463,6 +526,7 @@ async function addMeal() {
   const title = arg("title", "未命名餐食");
   const description = arg("description", "");
   const source = arg("source", "用户记录");
+  const nutrition = parseNutritionArgs();
   const imageArgs = process.argv.filter(item => item.startsWith("--image=")).map(item => item.slice("--image=".length));
   const imagePaths = await persistImages(imageArgs, p);
   const maintenanceAvg = Math.round((data.profile.sedentaryMaintenanceKcalRange[0] + data.profile.sedentaryMaintenanceKcalRange[1]) / 2);
@@ -486,7 +550,7 @@ async function addMeal() {
   }
 
   day.meals ||= [];
-  day.meals.push({
+  const meal = {
     id: `${date}-${type}-${Date.now()}`,
     type,
     title,
@@ -496,7 +560,9 @@ async function addMeal() {
     proteinRangeG: protein == null ? null : [Number(arg("proteinMinG", protein)), Number(arg("proteinMaxG", protein))],
     imagePaths,
     source
-  });
+  };
+  if (nutrition) meal.nutrition = nutrition;
+  day.meals.push(meal);
 
   day.intakeKcal = day.meals.reduce((sum, meal) => sum + Number(meal.kcal || 0), 0);
   day.intakeRangeKcal = [
@@ -510,6 +576,9 @@ async function addMeal() {
   ];
   day.deficitKcal = maintenanceAvg + Number(day.exerciseKcal || 0) - day.intakeKcal;
   day.note = day.meals.map(meal => `${mealLabels(meal.type)}：${meal.title}`).join("；");
+  day.nutrition = summarizeNutrition(day.meals);
+  day.nutritionConfidence = day.nutrition ? "estimated" : undefined;
+  day.nutritionAdvice = nutritionAdvice(day.nutrition, data.targets?.nutrition);
 
   data.periodLabel = `${data.days[0]?.date || date}-${data.days.at(-1)?.date || date}`;
   data.stats.proteinQualifiedDays = data.days.filter(item => item.proteinRangeG?.[1] >= data.targets.dailyProteinRangeG[0]).length;
@@ -517,11 +586,12 @@ async function addMeal() {
   data.copy.summary = [
     `今天目前摄入约 ${day.intakeKcal} kcal。`,
     `蛋白质目前约 ${day.proteinRangeG[0]}-${day.proteinRangeG[1]}g。`,
+    day.nutrition ? `膳食纤维约 ${day.nutrition.fiberG}g，钠约 ${day.nutrition.sodiumMg}mg。` : "营养维度还不完整，继续记录后会补齐。",
     "继续按当天目标调整下一餐。"
   ];
   await writeData(data, p);
   await fsp.appendFile(p.log, `\n## ${date}\n- ${mealLabels(type)}：${title}，约 ${kcal} kcal${protein == null ? "" : `，蛋白约 ${protein}g`}。\n`, "utf8");
-  console.log(JSON.stringify({ ok: true, date, intakeKcal: day.intakeKcal, proteinRangeG: day.proteinRangeG }, null, 2));
+  console.log(JSON.stringify({ ok: true, date, intakeKcal: day.intakeKcal, proteinRangeG: day.proteinRangeG, nutrition: day.nutrition }, null, 2));
 }
 
 function mealLabels(type) {

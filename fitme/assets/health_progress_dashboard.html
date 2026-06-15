@@ -588,6 +588,65 @@
       box-shadow: 0 0 0 5px rgba(52, 163, 111, 0.12);
     }
 
+    .nutrition-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .nutrition-card {
+      padding: 13px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.62);
+      border-radius: var(--radius);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.025)),
+        rgba(255, 255, 255, 0.035);
+      box-shadow: var(--inner-glow), 0 12px 24px rgba(38, 91, 67, 0.06);
+      backdrop-filter: blur(34px) saturate(155%);
+      -webkit-backdrop-filter: blur(34px) saturate(155%);
+    }
+
+    .nutrition-card b {
+      display: block;
+      font-size: 22px;
+      line-height: 1.05;
+      font-variant-numeric: tabular-nums;
+      margin: 6px 0;
+    }
+
+    .nutrition-label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .nutrition-status {
+      display: inline-flex;
+      width: fit-content;
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-size: 11px;
+      font-weight: 850;
+      color: var(--green-dark);
+      background: rgba(255, 255, 255, 0.18);
+      border: 1px solid rgba(255, 255, 255, 0.56);
+    }
+
+    .nutrition-status.is-low {
+      color: #8a6734;
+    }
+
+    .nutrition-status.is-high {
+      color: #a24d3f;
+    }
+
+    .nutrition-note {
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
     .meal-toolbar {
       display: flex;
       flex-wrap: wrap;
@@ -1029,6 +1088,9 @@
           <p class="section-title">总览与下一步</p>
           <div class="deficit" id="summaryCards"></div>
           <div class="summary-list" id="summaryList" style="margin-top:16px"></div>
+          <p class="section-title" style="margin-top:20px">今日营养维度</p>
+          <div class="nutrition-grid" id="nutritionGrid"></div>
+          <div class="summary-list" id="nutritionAdvice" style="margin-top:14px"></div>
         </div>
       </div>
     </section>
@@ -1111,6 +1173,52 @@
       const types = new Set(["all"]);
       days.flatMap(day => day.meals || []).forEach(meal => types.add(meal.type || "snack"));
       return [...types].filter(type => mealLabels[type]);
+    }
+
+    function nutritionStatus(value, target) {
+      if (!target) return { label: "估算", className: "" };
+      if (target.min != null && value < target.min) return { label: "偏低", className: " is-low" };
+      if (target.max != null) {
+        if (value > target.max) return { label: "偏高", className: " is-high" };
+        if (value >= target.max * 0.72) return { label: "接近上限", className: "" };
+        return { label: "可控", className: "" };
+      }
+      return { label: "合适", className: "" };
+    }
+
+    function renderNutrition(today) {
+      const nutrition = today.nutrition || {};
+      const targets = data.targets?.nutrition || {};
+      const items = [
+        ["膳食纤维", nutrition.fiberG, "g", { min: targets.fiberG?.[0], max: targets.fiberG?.[1] }, "蔬菜、豆类、全谷物"],
+        ["钠", nutrition.sodiumMg, "mg", { max: targets.sodiumMgMax }, "少酱少汤"],
+        ["钙", nutrition.calciumMg, "mg", { min: targets.calciumMg?.[0], max: targets.calciumMg?.[1] }, "奶/豆腐/小鱼虾"],
+        ["钾", nutrition.potassiumMg, "mg", { min: targets.potassiumMg?.[0], max: targets.potassiumMg?.[1] }, "蔬果、土豆、豆类"],
+        ["铁", nutrition.ironMg, "mg", { min: targets.ironMg?.[0], max: targets.ironMg?.[1] }, "红肉、蛋、豆类"],
+        ["维生素C", nutrition.vitaminCMg, "mg", { min: targets.vitaminCMg?.[0], max: targets.vitaminCMg?.[1] }, "水果/绿叶菜"],
+        ["维生素D", nutrition.vitaminDMcg, "µg", { min: targets.vitaminDMcg?.[0], max: targets.vitaminDMcg?.[1] }, "蛋/鱼/日晒"],
+        ["维生素B12", nutrition.vitaminB12Mcg, "µg", { min: targets.vitaminB12Mcg?.[0], max: targets.vitaminB12Mcg?.[1] }, "肉蛋奶鱼"]
+      ];
+
+      document.getElementById("nutritionGrid").innerHTML = items.map(([label, value, unit, target, note]) => {
+        const displayValue = value == null ? "—" : `${Number(value).toLocaleString("zh-CN")}${unit}`;
+        const status = value == null ? { label: "待估", className: " is-low" } : nutritionStatus(Number(value), target);
+        return `
+          <div class="nutrition-card">
+            <span class="nutrition-label">${escapeHtml(label)}</span>
+            <b>${escapeHtml(displayValue)}</b>
+            <span class="nutrition-status${status.className}">${escapeHtml(status.label)}</span>
+            <div class="nutrition-note">${escapeHtml(note)}</div>
+          </div>
+        `;
+      }).join("");
+
+      const advice = today.nutritionAdvice?.length
+        ? today.nutritionAdvice
+        : ["今天营养维度还不完整，继续记录餐食后会自动补充建议。"];
+      document.getElementById("nutritionAdvice").innerHTML = advice.map(item => `
+        <div class="summary-item"><span class="dot"></span><span>${escapeHtml(item)}</span></div>
+      `).join("");
     }
 
     function renderMealPhoto(meal) {
@@ -1209,8 +1317,12 @@
       document.getElementById("periodLabel").textContent = `Nutrition Log · ${data.periodLabel}`;
       document.getElementById("pageTitle").textContent = data.copy.title;
       document.getElementById("overviewCopy").textContent = data.copy.overview;
+      const targetWeightRange = data.profile.targetWeightRangeKg;
+      const targetWeightLabel = targetWeightRange[0] === targetWeightRange[1]
+        ? `${targetWeightRange[0]}kg`
+        : `${targetWeightRange[0]}-${targetWeightRange[1]}kg`;
       document.getElementById("statusPill").textContent =
-        `当前体重 ${data.profile.latestWeightKg}kg · 目标 ${data.profile.targetWeightRangeKg[0]}-${data.profile.targetWeightRangeKg[1]}kg`;
+        `当前体重 ${data.profile.latestWeightKg}kg · 目标 ${targetWeightLabel}`;
 
       const metrics = [
         ["今日摄入", latest.intakeKcal, `目标 ${data.targets.dailyKcalRange[0]}-${data.targets.dailyKcalRange[1]} kcal`],
@@ -1296,6 +1408,7 @@
       document.getElementById("summaryList").innerHTML = data.copy.summary.map(item => `
         <div class="summary-item"><span class="dot"></span><span>${escapeHtml(item)}</span></div>
       `).join("");
+      renderNutrition(latest);
 
       document.getElementById("proteinRing").style.setProperty("--angle", `${Math.round(proteinCompletion * 3.6)}deg`);
     }

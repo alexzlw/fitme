@@ -11,9 +11,10 @@ FitMe is a reusable local health tracker: a persistent web dashboard plus JSON-b
 
 - Only record confirmed intake: “吃了/喝了/吃完了” counts; “打算/能不能/选哪个” does not.
 - Branded/package items: use visible label or reliable/official nutrition data first; estimate only when unavailable.
-- Store source and uncertainty: every meal should have `kcal`, optional `kcalRange`, optional `proteinRangeG`, and `source`.
+- Store source and uncertainty: every meal should have `kcal`, optional `kcalRange`, optional `proteinRangeG`, optional nutrition estimates, and `source`.
 - Persist images: copy local image files into `health_images/` before writing `imagePaths`; never depend on chat/temp paths.
 - Keep replies short for routine updates: “已记录：今日约 X kcal，蛋白约 Y-Zg。”
+- For today's panel, estimate practical nutrition dimensions when possible: 膳食纤维、钠、钙、钾、铁、维生素C、维生素D、维生素B12. These are lifestyle estimates, not medical nutrition facts.
 
 ## Dashboard Design
 
@@ -24,6 +25,7 @@ The dashboard is a local HTML/CSS/JS app with:
 - Long-term deficit calendar: one square per day; darker color means larger deficit.
 - Deficit trend timeline.
 - Daily meal detail panel: expandable days, filters by breakfast/lunch/dinner/snack, each meal shows image, text, kcal, protein, and source.
+- Today's nutrition panel only: show fiber/sodium/minerals/vitamins and short next-meal advice. Do not turn the long-term calendar into micronutrient history.
 
 ## Storage Layout
 
@@ -65,7 +67,17 @@ Data model:
   "targets": {
     "dailyKcalRange": [1600, 1900],
     "dailyProteinRangeG": [90, 120],
-    "proteinCompletionTargetG": 108
+    "proteinCompletionTargetG": 108,
+    "nutrition": {
+      "fiberG": [25, 35],
+      "sodiumMgMax": 2000,
+      "calciumMg": [800, 1000],
+      "potassiumMg": [2000, 3500],
+      "ironMg": [10, 15],
+      "vitaminCMg": [100, 200],
+      "vitaminDMcg": [10, 20],
+      "vitaminB12Mcg": [2.4, 5]
+    }
   },
   "days": [
     {
@@ -81,9 +93,32 @@ Data model:
           "kcal": 630,
           "kcalRange": [580, 720],
           "proteinRangeG": [48, 60],
+          "nutrition": {
+            "fiberG": 5,
+            "sodiumMg": 820,
+            "calciumMg": 120,
+            "potassiumMg": 780,
+            "ironMg": 2.8,
+            "vitaminCMg": 30,
+            "vitaminDMcg": 1.2,
+            "vitaminB12Mcg": 1.6
+          },
           "imagePaths": ["health_images/example.jpg"],
           "source": "订单截图 + 实拍 + 估算"
         }
+      ],
+      "nutrition": {
+        "fiberG": 5,
+        "sodiumMg": 820,
+        "calciumMg": 120,
+        "potassiumMg": 780,
+        "ironMg": 2.8,
+        "vitaminCMg": 30,
+        "vitaminDMcg": 1.2,
+        "vitaminB12Mcg": 1.6
+      },
+      "nutritionAdvice": [
+        "膳食纤维偏低，下一餐优先加蔬菜、菌菇、豆制品或全谷物。"
       ]
     }
   ]
@@ -178,6 +213,8 @@ node <fitme-skill-folder>/scripts/fitme.js add-meal \
   --description="加鸡胸肉，混合沙拉菜" \
   --kcal=630 --kcalMin=580 --kcalMax=720 \
   --proteinG=54 --proteinMinG=48 --proteinMaxG=60 \
+  --fiberG=5 --sodiumMg=820 --calciumMg=120 --potassiumMg=780 \
+  --ironMg=2.8 --vitaminCMg=30 --vitaminDMcg=1.2 --vitaminB12Mcg=1.6 \
   --image=/absolute/path/to/photo.jpg \
   --source="订单截图 + 实拍 + 估算"
 ```
@@ -190,6 +227,8 @@ node <fitme-skill-folder>/scripts/fitme.js add-meal \
 - Sedentary maintenance: `BMR * 1.15` to `BMR * 1.2`.
 - For fat loss, default daily targets are `1600-1900 kcal` and `90-120g protein`, then adjust to the user's size and goal.
 - Use narrow ranges when possible. If uncertain, explain the reason briefly.
+- Nutrition dimensions are estimated only for today's decision-making. Prioritize branded labels and reliable nutrition facts; otherwise infer from common food composition and mark the source as estimated.
+- For routine advice, focus on the biggest actionable gaps: fiber low -> vegetables/beans/whole grains; sodium high -> less sauce/soup and more water; calcium or vitamin D low -> dairy/soy/tofu/eggs/fish/sunlight; vitamin C low -> fruit/greens.
 
 ## Existing Site Behavior
 
