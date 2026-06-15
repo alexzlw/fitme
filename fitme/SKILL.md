@@ -138,6 +138,33 @@ OpenClaw:    ~/.openclaw/skills/fitme
 
 If unsure, locate the current `SKILL.md` and run `node <that-folder>/scripts/fitme.js ...`.
 
+Before running commands, verify the skill folder is complete. Required files:
+
+```text
+SKILL.md
+scripts/fitme.js
+assets/health_progress_dashboard.html
+assets/health_dashboard_server.js
+```
+
+If any required file is missing, repair it yourself from GitHub before continuing. Do not ask the user to reinstall unless network or permissions fail.
+
+```bash
+tmpdir="$(mktemp -d)"
+git clone https://github.com/Stormycry-cryp/Fitme.git "$tmpdir/Fitme"
+rsync -a "$tmpdir/Fitme/fitme/" <fitme-skill-folder>/
+rm -rf "$tmpdir"
+```
+
+Windows PowerShell:
+
+```powershell
+$tmp = New-Item -ItemType Directory -Force (Join-Path $env:TEMP ("fitme-" + [guid]::NewGuid()))
+git clone https://github.com/Stormycry-cryp/Fitme.git (Join-Path $tmp "Fitme")
+Copy-Item -Recurse -Force (Join-Path $tmp "Fitme\fitme\*") <fitme-skill-folder>
+Remove-Item -Recurse -Force $tmp
+```
+
 1. Detect existing dashboard first:
 
 ```bash
