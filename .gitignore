@@ -8,3 +8,9 @@ health_dashboard_data.json
 health_dashboard_data.js
 fitness_daily_log.md
 health_images/
+
+# Next.js
+.next/
+.env.local
+.env
+
