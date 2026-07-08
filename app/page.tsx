@@ -97,8 +97,7 @@ const mealLabels: Record<string, string> = {
   breakfast: "早餐",
   lunch: "午餐",
   dinner: "晚餐",
-  snack: "加餐/饮品",
-  exercise: "运动/消耗"
+  snack: "加餐/饮品"
 };
 
 const nutritionFields = [
@@ -140,8 +139,8 @@ export default function FitMeDashboard() {
   const [fastingElapsed, setFastingElapsed] = useState("");
   const [isFastingSaving, setIsFastingSaving] = useState(false);
 
-  // Active chart tab (fasting | food | vitals)
-  const [activeChartTab, setActiveChartTab] = useState<"fasting" | "food" | "vitals">("fasting");
+  // Active chart tab (fasting | period | bowel)
+  const [activeChartTab, setActiveChartTab] = useState<"fasting" | "period" | "bowel">("fasting");
   const [isVitalsSaving, setIsVitalsSaving] = useState(false);
 
   // Form Fields
@@ -448,7 +447,7 @@ export default function FitMeDashboard() {
       return (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
           <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>📊 暂无历史趋势数据</p>
-          <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>开始记录断食与餐食后，图表将自动生成。</p>
+          <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>开始记录断食与生理体征后，图表将自动生成。</p>
         </div>
       );
     }
@@ -534,55 +533,58 @@ export default function FitMeDashboard() {
       );
     }
 
-    if (activeChartTab === "food") {
-      const maxCal = Math.max(...last10Days.map(d => d.intakeKcal || 0), 1200);
-      const getY = (val: number) => cHeight + padTop - (val / maxCal) * cHeight;
-
-      const points = last10Days.map((d, idx) => ({ x: getX(idx), y: getY(d.intakeKcal) }));
-      const pathD = points.length > 0 
-        ? `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ")
-        : "";
-      const areaD = pathD 
-        ? `${pathD} L ${points[points.length - 1].x} ${cHeight + padTop} L ${points[0].x} ${cHeight + padTop} Z`
-        : "";
+    if (activeChartTab === "period") {
+      const getFlowVal = (f?: "light" | "medium" | "heavy") => {
+        if (f === "light") return 1;
+        if (f === "medium") return 2;
+        if (f === "heavy") return 3;
+        return 0;
+      };
+      
+      const getY = (val: number) => cHeight + padTop - (val / 3) * cHeight;
 
       return (
         <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
           <defs>
-            <linearGradient id="foodGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2d8f63" stopOpacity={0.4} />
-              <stop offset="100%" stopColor="#2d8f63" stopOpacity={0.0} />
+            <linearGradient id="periodGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#ff8b77" stopOpacity={0.9} />
+              <stop offset="100%" stopColor="#ff8b77" stopOpacity={0.2} />
             </linearGradient>
           </defs>
 
-          {[0, 500, 1000, 1500, 2000, 2500].map(c => {
-            if (c > maxCal * 1.1) return null;
-            const y = getY(c);
+          {[0, 1, 2, 3].map(flow => {
+            const y = getY(flow);
+            const label = flow === 0 ? "非经期" : flow === 1 ? "偏少" : flow === 2 ? "中等" : "偏多";
             return (
-              <g key={c}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{c}</text>
+              <g key={flow}>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255, 139, 119, 0.08)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{label}</text>
               </g>
             );
           })}
 
-          {areaD && <path d={areaD} fill="url(#foodGrad)" />}
-          {pathD && <path d={pathD} fill="none" stroke="#2d8f63" strokeWidth={2} />}
-
           {last10Days.map((d, idx) => {
+            const flow = d.period?.flow;
+            const val = getFlowVal(flow);
             const x = getX(idx);
-            const y = getY(d.intakeKcal);
-            const prot = d.proteinRangeG ? (d.proteinRangeG[0] + d.proteinRangeG[1]) / 2 : 0;
+            const y = getY(val);
+            const barH = cHeight + padTop - y;
 
             return (
               <g key={d.date}>
-                <circle cx={x} cy={y} r={3.5} fill="#ffffff" stroke="#2d8f63" strokeWidth={2} />
-                <text x={x} y={y - 8} textAnchor="middle" fill="var(--ink)" fontSize={8} fontWeight="700">
-                  {d.intakeKcal}
-                </text>
-                {prot > 0 && (
-                  <text x={x} y={cHeight + padTop - 6} textAnchor="middle" fill="#2d8f63" fontSize={8} fontWeight="bold">
-                    {Math.round(prot)}g
+                {val > 0 && (
+                  <rect
+                    x={x - barWidth / 2}
+                    y={y}
+                    width={barWidth}
+                    height={barH}
+                    rx={3}
+                    fill="url(#periodGrad)"
+                  />
+                )}
+                {val > 0 && (
+                  <text x={x} y={y - 6} textAnchor="middle" fontSize={10}>
+                    🌸
                   </text>
                 )}
                 <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
@@ -595,7 +597,7 @@ export default function FitMeDashboard() {
       );
     }
 
-    if (activeChartTab === "vitals") {
+    if (activeChartTab === "bowel") {
       const maxBowel = Math.max(...last10Days.map(d => d.bowelMovements?.length || 0), 3);
       const getY = (val: number) => cHeight + padTop - (val / maxBowel) * cHeight;
 
@@ -615,26 +617,6 @@ export default function FitMeDashboard() {
                 <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
                 <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{b}次</text>
               </g>
-            );
-          })}
-
-          {last10Days.map((d, idx) => {
-            if (!d.period) return null;
-            const x = getX(idx);
-            const step = cWidth / (numDays || 1);
-            return (
-              <rect
-                key={`period-${d.date}`}
-                x={x - step / 2 + 1}
-                y={padTop}
-                width={step - 2}
-                height={cHeight}
-                fill="rgba(255, 139, 119, 0.12)"
-                stroke="rgba(255, 139, 119, 0.35)"
-                strokeWidth={1}
-                strokeDasharray="2 2"
-                rx={4}
-              />
             );
           })}
 
@@ -659,11 +641,6 @@ export default function FitMeDashboard() {
                 {val > 0 && (
                   <text x={x} y={y - 6} textAnchor="middle" fill="#8d5b4c" fontSize={8} fontWeight="bold">
                     💩 {val}
-                  </text>
-                )}
-                {d.period && (
-                  <text x={x} y={padTop + 14} textAnchor="middle" fontSize={10}>
-                    🌸
                   </text>
                 )}
                 <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
@@ -1482,17 +1459,17 @@ export default function FitMeDashboard() {
                 </button>
                 <button
                   type="button"
-                  className={`meal-filter ${activeChartTab === "food" ? "is-active" : ""}`}
-                  onClick={() => setActiveChartTab("food")}
+                  className={`meal-filter ${activeChartTab === "period" ? "is-active" : ""}`}
+                  onClick={() => setActiveChartTab("period")}
                 >
-                  🥗 饮食摄入
+                  🌸 经期趋势
                 </button>
                 <button
                   type="button"
-                  className={`meal-filter ${activeChartTab === "vitals" ? "is-active" : ""}`}
-                  onClick={() => setActiveChartTab("vitals")}
+                  className={`meal-filter ${activeChartTab === "bowel" ? "is-active" : ""}`}
+                  onClick={() => setActiveChartTab("bowel")}
                 >
-                  🌸💩 生理排便
+                  💩 排便趋势
                 </button>
               </div>
             </div>
