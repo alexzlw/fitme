@@ -131,6 +131,7 @@ const translations = {
     onboardSubmit: "Save & Generate Plan",
     onboardSaving: "Initializing...",
     topTitle: "FitMe Dashboard",
+    topEyebrow: "Fasting & Vitals Log · {range}",
     topSubcopy: "Track fasting, weight, period, and bowel movements in one clean view.",
     topWeightStatus: "Weight: {W}kg · Goal: {G}kg",
     fastActive: "🔥 Fasting Active",
@@ -206,6 +207,7 @@ const translations = {
     onboardSubmit: "生成我的健康计划",
     onboardSaving: "正在初始化...",
     topTitle: "FitMe 健康看板",
+    topEyebrow: "断食与健康指标记录 · {range}",
     topSubcopy: "专注断食时间、每日体重、经期生理和排便状况的健康追踪管理。",
     topWeightStatus: "当前体重 {W}kg · 目标 {G}kg",
     fastActive: "🔥 断食燃烧中",
@@ -281,6 +283,7 @@ const translations = {
     onboardSubmit: "プランを生成",
     onboardSaving: "初期化中...",
     topTitle: "FitMe ダッシュボード",
+    topEyebrow: "断食と健康記録 · {range}",
     topSubcopy: "断食时间、体重、生理周期、便通の健康管理ダッシュボード。",
     topWeightStatus: "現在: {W}kg · 目標: {G}kg",
     fastActive: "🔥 断食実行中",
@@ -1695,8 +1698,8 @@ export default function FitMeDashboard() {
   const targetWeightRange = data.profile.targetWeightRangeKg || [0, 0];
   const targetWeightLabel =
     targetWeightRange[0] === targetWeightRange[1]
-      ? `${targetWeightRange[0]}kg`
-      : `${targetWeightRange[0]}-${targetWeightRange[1]}kg`;
+      ? `${targetWeightRange[0]}`
+      : `${targetWeightRange[0]}-${targetWeightRange[1]}`;
 
   // Heatmap rendering logic
   const groupDatesByMonth = (daysList: DayLog[]) => {
@@ -1755,7 +1758,7 @@ export default function FitMeDashboard() {
       <div className="topbar">
         <div>
           <p className="eyebrow" id="periodLabel">
-            Nutrition Log · {data.periodLabel}
+            {t("topEyebrow", { range: data.periodLabel })}
           </p>
           <h1 id="pageTitle">{t("topTitle")}</h1>
           <p className="subcopy">
