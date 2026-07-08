@@ -1505,3 +1505,63 @@ h1 {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Vitals & Bowels Tracker Premium Styling */
+.vitals-card {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border: 1px solid var(--glass-edge);
+}
+
+.period-card {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.period-card.active-period {
+  background: rgba(255, 139, 119, 0.12) !important;
+  border-color: rgba(255, 139, 119, 0.35) !important;
+  box-shadow: 
+    0 10px 30px rgba(255, 139, 119, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.period-card.active-period .section-title {
+  color: #ff8b77 !important;
+  text-shadow: 0 0 8px rgba(255, 139, 119, 0.2);
+}
+
+.bowel-card {
+  background: rgba(255, 255, 255, 0.45);
+}
+
+.bowel-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 35px rgba(21, 36, 29, 0.08);
+}
+
+/* SVG Chart Animations and interactive elements */
+.chart-rect {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.chart-rect:hover {
+  fill: #41aa72 !important;
+  opacity: 1;
+  filter: drop-shadow(0 0 6px rgba(65, 170, 114, 0.4));
+}
+
+.chart-group:hover rect {
+  fill: #41aa72 !important;
+  filter: drop-shadow(0 0 6px rgba(65, 170, 114, 0.4));
+}
+
+.chart-group text {
+  transition: opacity 0.2s ease;
+}
+
+@media (max-width: 860px) {
+  .section[style*="grid-template-columns"],
+  .section[style*="gridTemplateColumns"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+

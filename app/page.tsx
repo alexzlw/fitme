@@ -15,6 +15,18 @@ interface Meal {
   nutrition?: Record<string, number>;
 }
 
+interface BowelMovementLog {
+  id: string;
+  time: string;
+  type: "normal" | "loose" | "constipated";
+  note?: string;
+}
+
+interface PeriodLog {
+  flow: "light" | "medium" | "heavy";
+  note?: string;
+}
+
 interface DayLog {
   date: string;
   label: string;
@@ -30,6 +42,8 @@ interface DayLog {
   nutritionConfidence?: string;
   nutritionAdvice?: string[];
   fastingDurationHours?: number;
+  period?: PeriodLog | null;
+  bowelMovements?: BowelMovementLog[];
 }
 
 interface Profile {
@@ -125,6 +139,10 @@ export default function FitMeDashboard() {
   // Fasting Tracking state
   const [fastingElapsed, setFastingElapsed] = useState("");
   const [isFastingSaving, setIsFastingSaving] = useState(false);
+
+  // Active chart tab (fasting | food | vitals)
+  const [activeChartTab, setActiveChartTab] = useState<"fasting" | "food" | "vitals">("fasting");
+  const [isVitalsSaving, setIsVitalsSaving] = useState(false);
 
   // Form Fields
   const [formDate, setFormDate] = useState("");
@@ -273,6 +291,392 @@ export default function FitMeDashboard() {
     } finally {
       setIsFastingSaving(false);
     }
+  };
+
+  const calculatePeriodDay = (dateStr: string) => {
+    if (!data) return 1;
+    let count = 0;
+    let current = new Date(dateStr);
+    
+    while (true) {
+      const currentStr = current.toISOString().slice(0, 10);
+      const log = data.days.find(d => d.date === currentStr);
+      if (log && log.period) {
+        count++;
+        current.setDate(current.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return count > 0 ? count : 1;
+  };
+
+  const handleTogglePeriod = async (dateStr: string, flow: "light" | "medium" | "heavy" | null) => {
+    if (!data) return;
+    setIsVitalsSaving(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const days = [...(data.days || [])];
+      let dayLog = days.find(d => d.date === dateStr);
+      
+      if (!dayLog) {
+        dayLog = {
+          date: dateStr,
+          label: dateStr.slice(5).replace("-", "/"),
+          intakeKcal: 0,
+          intakeRangeKcal: [0, 0],
+          proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动",
+          exerciseKcal: 0,
+          deficitKcal: 0,
+          note: "",
+          meals: [],
+          period: flow ? { flow } : null
+        };
+        days.push(dayLog);
+      } else {
+        dayLog.period = flow ? { flow } : null;
+      }
+      
+      const updatedData: FitMeData = {
+        ...data,
+        days
+      };
+      
+      const res = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setData(updatedData);
+    } catch (e: any) {
+      alert("更新经期记录失败: " + e.message);
+    } finally {
+      setIsVitalsSaving(false);
+    }
+  };
+
+  const handleQuickBowelMovement = async (dateStr: string, type: "normal" | "loose" | "constipated" = "normal") => {
+    if (!data) return;
+    setIsVitalsSaving(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const days = [...(data.days || [])];
+      let dayLog = days.find(d => d.date === dateStr);
+      
+      const newLog: BowelMovementLog = {
+        id: Math.random().toString(36).slice(2, 9),
+        time: new Date().toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" }),
+        type
+      };
+      
+      if (!dayLog) {
+        dayLog = {
+          date: dateStr,
+          label: dateStr.slice(5).replace("-", "/"),
+          intakeKcal: 0,
+          intakeRangeKcal: [0, 0],
+          proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动",
+          exerciseKcal: 0,
+          deficitKcal: 0,
+          note: "",
+          meals: [],
+          bowelMovements: [newLog]
+        };
+        days.push(dayLog);
+      } else {
+        dayLog.bowelMovements = [...(dayLog.bowelMovements || []), newLog];
+      }
+      
+      const updatedData: FitMeData = {
+        ...data,
+        days
+      };
+      
+      const res = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setData(updatedData);
+    } catch (e: any) {
+      alert("记录排便失败: " + e.message);
+    } finally {
+      setIsVitalsSaving(false);
+    }
+  };
+
+  const handleDeleteBowelMovement = async (dateStr: string, itemId: string) => {
+    if (!data) return;
+    setIsVitalsSaving(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const days = [...(data.days || [])];
+      const dayLog = days.find(d => d.date === dateStr);
+      if (dayLog) {
+        dayLog.bowelMovements = (dayLog.bowelMovements || []).filter(item => item.id !== itemId);
+      }
+      
+      const updatedData: FitMeData = {
+        ...data,
+        days
+      };
+      
+      const res = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setData(updatedData);
+    } catch (e: any) {
+      alert("删除排便记录失败: " + e.message);
+    } finally {
+      setIsVitalsSaving(false);
+    }
+  };
+
+  const renderStatsChart = () => {
+    const last10Days = [...(data?.days || [])]
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .slice(-10);
+
+    if (last10Days.length === 0) {
+      return (
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "#8fae9f" }}>
+          <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>📊 暂无历史趋势数据</p>
+          <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>开始记录断食与餐食后，图表将自动生成。</p>
+        </div>
+      );
+    }
+
+    const width = 500;
+    const height = 200;
+    const padLeft = 40;
+    const padRight = 20;
+    const padTop = 25;
+    const padBot = 25;
+    const cWidth = width - padLeft - padRight;
+    const cHeight = height - padTop - padBot;
+    const numDays = last10Days.length;
+    
+    const barWidth = Math.min(20, (cWidth / numDays) * 0.4);
+    const getX = (index: number) => {
+      const step = cWidth / (numDays || 1);
+      return padLeft + index * step + step / 2;
+    };
+
+    if (activeChartTab === "fasting") {
+      const maxVal = Math.max(...last10Days.map(d => d.fastingDurationHours || 0), 24);
+      const getY = (val: number) => cHeight + padTop - (val / maxVal) * cHeight;
+      const targetY = getY(16);
+
+      return (
+        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+          <defs>
+            <linearGradient id="fastGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2d8f63" stopOpacity={0.9} />
+              <stop offset="100%" stopColor="#2d8f63" stopOpacity={0.2} />
+            </linearGradient>
+          </defs>
+
+          {[0, 6, 12, 18, 24].map(h => {
+            if (h > maxVal) return null;
+            const y = getY(h);
+            return (
+              <g key={h}>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.4)" fontSize={9}>{h}h</text>
+              </g>
+            );
+          })}
+
+          {maxVal >= 16 && (
+            <g>
+              <line x1={padLeft} y1={targetY} x2={width - padRight} y2={targetY} stroke="rgba(255, 139, 119, 0.4)" strokeWidth={1.5} strokeDasharray="3 3" />
+              <text x={width - padRight - 5} y={targetY - 5} textAnchor="end" fill="rgba(255, 139, 119, 0.8)" fontSize={8} fontWeight="bold">16h 断食目标线</text>
+            </g>
+          )}
+
+          {last10Days.map((d, idx) => {
+            const val = d.fastingDurationHours || 0;
+            const x = getX(idx);
+            const y = getY(val);
+            const barH = cHeight + padTop - y;
+
+            return (
+              <g key={d.date}>
+                {val > 0 && (
+                  <rect
+                    x={x - barWidth / 2}
+                    y={y}
+                    width={barWidth}
+                    height={barH}
+                    rx={3}
+                    fill="url(#fastGrad)"
+                  />
+                )}
+                {val > 0 && (
+                  <text x={x} y={y - 6} textAnchor="middle" fill="#ffffff" fontSize={8} fontWeight="600">
+                    {val.toFixed(1)}h
+                  </text>
+                )}
+                <text x={x} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={9}>
+                  {d.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      );
+    }
+
+    if (activeChartTab === "food") {
+      const maxCal = Math.max(...last10Days.map(d => d.intakeKcal || 0), 1200);
+      const getY = (val: number) => cHeight + padTop - (val / maxCal) * cHeight;
+
+      const points = last10Days.map((d, idx) => ({ x: getX(idx), y: getY(d.intakeKcal) }));
+      const pathD = points.length > 0 
+        ? `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ")
+        : "";
+      const areaD = pathD 
+        ? `${pathD} L ${points[points.length - 1].x} ${cHeight + padTop} L ${points[0].x} ${cHeight + padTop} Z`
+        : "";
+
+      return (
+        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+          <defs>
+            <linearGradient id="foodGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#2d8f63" stopOpacity={0.4} />
+              <stop offset="100%" stopColor="#2d8f63" stopOpacity={0.0} />
+            </linearGradient>
+          </defs>
+
+          {[0, 500, 1000, 1500, 2000, 2500].map(c => {
+            if (c > maxCal * 1.1) return null;
+            const y = getY(c);
+            return (
+              <g key={c}>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.4)" fontSize={9}>{c}</text>
+              </g>
+            );
+          })}
+
+          {areaD && <path d={areaD} fill="url(#foodGrad)" />}
+          {pathD && <path d={pathD} fill="none" stroke="#2d8f63" strokeWidth={2} />}
+
+          {last10Days.map((d, idx) => {
+            const x = getX(idx);
+            const y = getY(d.intakeKcal);
+            const prot = d.proteinRangeG ? (d.proteinRangeG[0] + d.proteinRangeG[1]) / 2 : 0;
+
+            return (
+              <g key={d.date}>
+                <circle cx={x} cy={y} r={3.5} fill="#ffffff" stroke="#2d8f63" strokeWidth={2} />
+                <text x={x} y={y - 8} textAnchor="middle" fill="#ffffff" fontSize={8} fontWeight="600">
+                  {d.intakeKcal}
+                </text>
+                {prot > 0 && (
+                  <text x={x} y={cHeight + padTop - 6} textAnchor="middle" fill="#8fae9f" fontSize={8} fontWeight="bold">
+                    {Math.round(prot)}g
+                  </text>
+                )}
+                <text x={x} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={9}>
+                  {d.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      );
+    }
+
+    if (activeChartTab === "vitals") {
+      const maxBowel = Math.max(...last10Days.map(d => d.bowelMovements?.length || 0), 3);
+      const getY = (val: number) => cHeight + padTop - (val / maxBowel) * cHeight;
+
+      return (
+        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+          <defs>
+            <linearGradient id="bowelGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#cfa17b" stopOpacity={0.9} />
+              <stop offset="100%" stopColor="#8d5b4c" stopOpacity={0.3} />
+            </linearGradient>
+          </defs>
+
+          {Array.from({ length: maxBowel + 1 }).map((_, b) => {
+            const y = getY(b);
+            return (
+              <g key={b}>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.4)" fontSize={9}>{b}次</text>
+              </g>
+            );
+          })}
+
+          {last10Days.map((d, idx) => {
+            if (!d.period) return null;
+            const x = getX(idx);
+            const step = cWidth / (numDays || 1);
+            return (
+              <rect
+                key={`period-${d.date}`}
+                x={x - step / 2 + 1}
+                y={padTop}
+                width={step - 2}
+                height={cHeight}
+                fill="rgba(255, 139, 119, 0.09)"
+                stroke="rgba(255, 139, 119, 0.25)"
+                strokeWidth={1}
+                strokeDasharray="2 2"
+                rx={4}
+              />
+            );
+          })}
+
+          {last10Days.map((d, idx) => {
+            const val = d.bowelMovements?.length || 0;
+            const x = getX(idx);
+            const y = getY(val);
+            const barH = cHeight + padTop - y;
+
+            return (
+              <g key={d.date}>
+                {val > 0 && (
+                  <rect
+                    x={x - barWidth / 2}
+                    y={y}
+                    width={barWidth}
+                    height={barH}
+                    rx={3}
+                    fill="url(#bowelGrad)"
+                  />
+                )}
+                {val > 0 && (
+                  <text x={x} y={y - 6} textAnchor="middle" fill="#cfa17b" fontSize={8} fontWeight="bold">
+                    💩 {val}
+                  </text>
+                )}
+                {d.period && (
+                  <text x={x} y={padTop + 14} textAnchor="middle" fontSize={10}>
+                    🌸
+                  </text>
+                )}
+                <text x={x} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={9}>
+                  {d.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      );
+    }
+
+    return null;
   };
 
   const fetchData = async (code: string, isManual = false) => {
@@ -906,7 +1310,7 @@ export default function FitMeDashboard() {
           </p>
           <h1 id="pageTitle">{safeCopy.title}</h1>
           <p className="subcopy">
-            基于当前记录的饮食、运动和体重数据生成。所有热量和缺口均为记录估算，用来辅助决策，不当作医疗级精确测量。
+            专注断食与饮食的健康追踪管理，支持经期与每日排便状况记录。
           </p>
         </div>
         <div className="status-pill" id="statusPill">
@@ -934,133 +1338,181 @@ export default function FitMeDashboard() {
         </button>
       </section>
 
-      {/* 3. Hero Summary Cards */}
-      <section className="hero">
-        <div className="panel">
-          <div className="panel-inner">
-            <p className="section-title">当前概览</p>
-            <p className="subcopy" id="overviewCopy">
-              {safeCopy.overview}
-            </p>
+      {/* 3. Simplified Today's Summary Card */}
+      <section className="hero" style={{ gridTemplateColumns: "1fr", margin: "0 24px 24px" }}>
+        <div className="panel" style={{ margin: 0 }}>
+          <div className="panel-inner" style={{ marginBottom: "14px" }}>
+            <p className="section-title">今日记录总览</p>
           </div>
-          <div className="hero-grid" id="metricGrid">
+          <div className="hero-grid" id="metricGrid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
             <div className="metric">
               <span className="metric-label">今日摄入</span>
-              <span className="metric-value">{fmt(latest.intakeKcal)}</span>
+              <span className="metric-value">{fmt(latest.intakeKcal)} kcal</span>
               <span className="metric-note">
-                目标 {data.targets.dailyKcalRange[0]}-{data.targets.dailyKcalRange[1]} kcal
+                今日推荐 {data.targets.dailyKcalRange[0]}-{data.targets.dailyKcalRange[1]} kcal
               </span>
             </div>
             <div className="metric">
-              <span className="metric-label">今日蛋白</span>
-              <span className="metric-value">{fmt(todayProtein)}g</span>
+              <span className="metric-label">蛋白质补充</span>
+              <span className="metric-value">{fmt(todayProtein)} g</span>
               <span className="metric-note">
-                估算 {latest.proteinRangeG[0]}-{latest.proteinRangeG[1]}g
+                每日目标 {data.targets.proteinCompletionTargetG} g
               </span>
             </div>
             <div className="metric">
-              <span className="metric-label">今日运动</span>
-              <span className="metric-value">{fmt(latest.exerciseKcal)}</span>
-              <span className="metric-note">{latest.exerciseLabel}</span>
+              <span className="metric-label">今日累计断食</span>
+              <span className="metric-value">{fmt(latest.fastingDurationHours || 0)} 小时</span>
+              <span className="metric-note">
+                今日已完成断食计时时长
+              </span>
             </div>
-            <div className="metric">
-              <span className="metric-label">总缺口</span>
-              <span className="metric-value">{fmt(totalDeficit)}</span>
-              <span className="metric-note">{days.length} 日主估 kcal</span>
+          </div>
+        </div>
+      </section>
+
+      {/* 4. Vitals Tracker Cards (Period & Bowels) */}
+      <section className="section" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px", margin: "0 24px 24px" }}>
+        {/* Period Card */}
+        <div className={`panel vitals-card period-card ${latest.period ? "active-period" : ""}`} style={{ margin: 0 }}>
+          <div className="panel-inner">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <p className="section-title" style={{ margin: 0, color: latest.period ? "#ff7c7c" : "inherit" }}>
+                🌸 经期记录
+              </p>
+              <div className="period-switch-wrap">
+                <select
+                  className="form-select"
+                  style={{ width: "auto", padding: "4px 8px", fontSize: "12px", background: "rgba(255,255,255,0.15)", color: latest.period ? "#ffffff" : "inherit", border: "none" }}
+                  value={latest.period?.flow || "none"}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    handleTogglePeriod(latest.date, val === "none" ? null : val as any);
+                  }}
+                  disabled={isVitalsSaving}
+                >
+                  <option value="none">非经期 ⏸️</option>
+                  <option value="light">经期：流量偏少 🌸</option>
+                  <option value="medium">经期：流量中等 🌸🌸</option>
+                  <option value="heavy">经期：流量偏多 🌸🌸🌸</option>
+                </select>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "16px" }}>
+              {latest.period ? (
+                <div>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
+                    经期中 · 第 {calculatePeriodDay(latest.date)} 天
+                  </h3>
+                  <span style={{ fontSize: "12px", opacity: 0.8 }}>
+                    当前流量：{latest.period.flow === "light" ? "偏少" : latest.period.flow === "heavy" ? "偏多" : "中等"}
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>非经期状态</h3>
+                  <span style={{ fontSize: "12px", opacity: 0.6 }}>若经期来潮，请在上方选择流量进行记录</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
 
-        <div className="panel">
-          <div className="ring-wrap">
-            <div className="ring" style={{ "--angle": `${Math.round(proteinCompletion * 3.6)}deg` } as any}>
-              <div className="ring-content">
-                <div className="ring-number">{proteinCompletion}%</div>
-                <div className="ring-caption">今日蛋白目标完成率</div>
+        {/* Bowel Movement Card */}
+        <div className="panel vitals-card bowel-card" style={{ margin: 0 }}>
+          <div className="panel-inner">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <p className="section-title" style={{ margin: 0 }}>💩 每日排便记录</p>
+              <button
+                className="btn btn-primary"
+                style={{ padding: "6px 12px", fontSize: "12px" }}
+                onClick={() => handleQuickBowelMovement(latest.date)}
+                disabled={isVitalsSaving}
+              >
+                💩 记一次排便
+              </button>
+            </div>
+
+            <div style={{ marginTop: "16px" }}>
+              <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
+                今日已排便 {(latest.bowelMovements || []).length} 次
+              </h3>
+              
+              {/* Bowel list */}
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px", maxHeight: "80px", overflowY: "auto" }}>
+                {(latest.bowelMovements || []).length === 0 ? (
+                  <span style={{ fontSize: "12px", opacity: 0.6 }}>今日暂无排便记录</span>
+                ) : (
+                  (latest.bowelMovements || []).map((item) => (
+                    <span 
+                      key={item.id} 
+                      style={{ background: "rgba(141, 91, 76, 0.25)", border: "1px solid rgba(141, 91, 76, 0.4)", borderRadius: "20px", padding: "3px 8px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                    >
+                      💩 {item.time}
+                      <button 
+                        type="button"
+                        style={{ background: "none", border: "none", color: "#ff8b77", cursor: "pointer", padding: "0 2px", fontWeight: "bold" }}
+                        onClick={() => handleDeleteBowelMovement(latest.date, item.id)}
+                        disabled={isVitalsSaving}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))
+                )}
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 4. Heatmap Calendar & Timeline */}
-      <section className="section">
-        <div className="panel">
+      {/* 5. 3-Tab Statistical Chart Section */}
+      <section className="section" style={{ gridTemplateColumns: "1fr", margin: "0 24px 24px" }}>
+        <div className="panel wide" style={{ margin: 0 }}>
           <div className="panel-inner">
-            <p className="section-title">长期缺口日历</p>
-            <div className="calendar">
-              <div className="heatmap-meta">
-                <span>每个方格代表一天；颜色越深，热量缺口越大。</span>
-                <span className="heatmap-legend">
-                  <span>低</span>
-                  <span className="legend-chip" style={{ "--c": "rgba(206, 238, 221, 0.9)" } as any}></span>
-                  <span className="legend-chip" style={{ "--c": "rgba(145, 213, 179, 0.94)" } as any}></span>
-                  <span className="legend-chip" style={{ "--c": "rgba(65, 170, 114, 0.96)" } as any}></span>
-                  <span className="legend-chip" style={{ "--c": "rgba(11, 83, 56, 0.9)" } as any}></span>
-                  <span>高</span>
-                </span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
+              <p className="section-title" style={{ margin: 0 }}>数据分析统计</p>
+              <div className="meal-toolbar" style={{ margin: 0 }}>
+                <button
+                  type="button"
+                  className={`meal-filter ${activeChartTab === "fasting" ? "is-active" : ""}`}
+                  onClick={() => setActiveChartTab("fasting")}
+                >
+                  ⏳ 断食趋势
+                </button>
+                <button
+                  type="button"
+                  className={`meal-filter ${activeChartTab === "food" ? "is-active" : ""}`}
+                  onClick={() => setActiveChartTab("food")}
+                >
+                  🥗 饮食摄入
+                </button>
+                <button
+                  type="button"
+                  className={`meal-filter ${activeChartTab === "vitals" ? "is-active" : ""}`}
+                  onClick={() => setActiveChartTab("vitals")}
+                >
+                  🌸💩 生理排便
+                </button>
               </div>
-              {Object.keys(monthsGroup).length === 0 ? (
-                <p className="footer-note">暂无记录数据</p>
-              ) : (
-                Object.entries(monthsGroup).map(([mName, mDays]) => (
-                  <div className="month-block" key={mName}>
-                    <div className="month-label">{mName.replace("-", "年")}月</div>
-                    <div className="heatmap-grid">
-                      {/* Insert calendar cells. Real-life heatmaps group by date grids. 
-                          We will render the days sequentially in a grid layout */}
-                      {mDays.map((d, index) => {
-                        const level = getDeficitLevel(d.deficitKcal);
-                        const title = `${d.date}：摄入 ${fmt(d.intakeKcal)} kcal，缺口 ${fmt(d.deficitKcal)} kcal`;
-                        return (
-                          <span
-                            key={d.date}
-                            className="heatmap-cell"
-                            data-level={level}
-                            title={title}
-                            style={{ "--delay": `${80 + index * 12}ms` } as any}
-                          />
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))
-              )}
+            </div>
+            <div style={{ minHeight: "220px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              {renderStatsChart()}
             </div>
           </div>
         </div>
+      </section>
 
-        <div className="panel">
+      {/* 6. Daily Meals Details */}
+      <section className="section" style={{ gridTemplateColumns: "1fr", margin: "0 24px 24px" }}>
+        <div className="panel wide" style={{ margin: 0 }}>
           <div className="panel-inner">
-            <p className="section-title">热量缺口趋势</p>
-            <div className="timeline">
-              {days.slice(-10).map((d, index) => {
-                const widthPercent = Math.max(8, Math.round((d.deficitKcal / maxDeficit) * 100));
-                return (
-                  <div className="timeline-row" key={d.date}>
-                    <span>{d.label}</span>
-                    <div className="timeline-track">
-                      <span style={{ "--w": `${widthPercent}%`, "--delay": `${120 + index * 100}ms` } as any}></span>
-                    </div>
-                    <b>{fmt(d.deficitKcal)}</b>
-                  </div>
-                );
-              })}
-            </div>
-            <p className="footer-note" id="deficitFootnote">
-              {safeCopy.footnote}
-            </p>
-          </div>
-        </div>
-
-        {/* 5. Daily Meals Details */}
-        <div className="panel wide">
-          <div className="panel-inner">
-            <p className="section-title">每日餐食</p>
+            <p className="section-title">每日餐食日记</p>
             <div className="meal-toolbar">
               {Object.entries(mealLabels).map(([key, label]) => (
                 <button
                   key={key}
+                  type="button"
                   className={`meal-filter ${activeMealFilter === key ? "is-active" : ""}`}
                   onClick={() => setActiveMealFilter(key)}
                 >
@@ -1069,9 +1521,9 @@ export default function FitMeDashboard() {
               ))}
             </div>
 
-            <div className="meal-days">
+            <div className="meal-days" style={{ marginTop: "16px" }}>
               {filteredDaysList.length === 0 ? (
-                <p className="footer-note">当前筛选下暂无餐食记录。</p>
+                <p className="footer-note">当前筛选下暂无饮食记录。</p>
               ) : (
                 filteredDaysList.map((d, index) => (
                   <details className="meal-day" key={d.date} open={index === 0}>
@@ -1080,7 +1532,6 @@ export default function FitMeDashboard() {
                       <span className="meal-day-note">{d.note || "已记录餐食"}</span>
                       <span className="meal-day-total">
                         {d.intakeKcal > 0 ? `${fmt(d.intakeKcal)} kcal` : ""}
-                        {d.exerciseKcal > 0 ? ` (运动 -${fmt(d.exerciseKcal)})` : ""}
                       </span>
                     </summary>
                     <div className="meal-list">
@@ -1120,75 +1571,6 @@ export default function FitMeDashboard() {
             </div>
           </div>
         </div>
-
-        {/* 6. Overview & Today's Nutrition Cards */}
-        <div className="panel wide">
-          <div className="panel-inner">
-            <p className="section-title">总览与下一步</p>
-            <div className="deficit">
-              <div className="deficit-card">
-                <b>{fmt(totalDeficit)} kcal</b>
-                <span className="metric-note">{days.length} 日累计主估缺口</span>
-              </div>
-              <div className="deficit-card">
-                <b>{proteinCloseDays} / {days.length}</b>
-                <span className="metric-note">蛋白达标或接近达标天数</span>
-              </div>
-              <div className="deficit-card">
-                <b>{data.profile.latestWeightKg} kg</b>
-                <span className="metric-note">最近一次记录体重</span>
-              </div>
-            </div>
-
-            <div className="summary-list" style={{ marginTop: "16px" }}>
-              {safeCopy.summary.map((item, idx) => (
-                <div className="summary-item" key={idx}>
-                  <span className="dot"></span>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-
-            <p className="section-title" style={{ marginTop: "20px" }}>
-              今日营养维度
-            </p>
-            <div className="nutrition-grid">
-              {[
-                ["膳食纤维", todayNutrition.fiberG, "g", "fiberG", "蔬菜、豆类、全谷物"],
-                ["钠", todayNutrition.sodiumMg, "mg", "sodiumMg", "少酱少汤"],
-                ["钙", todayNutrition.calciumMg, "mg", "calciumMg", "奶/豆腐/小鱼虾"],
-                ["钾", todayNutrition.potassiumMg, "mg", "potassiumMg", "蔬果、土豆、豆类"],
-                ["铁", todayNutrition.ironMg, "mg", "ironMg", "红肉、蛋、豆类"],
-                ["维生素C", todayNutrition.vitaminCMg, "mg", "vitaminCMg", "水果/绿叶菜"],
-                ["维生素D", todayNutrition.vitaminDMcg, "µg", "vitaminDMcg", "蛋/鱼/日晒"],
-                ["维生素B12", todayNutrition.vitaminB12Mcg, "µg", "vitaminB12Mcg", "肉蛋奶鱼"]
-              ].map(([label, val, unit, field, note]) => {
-                const numericVal = Number(val || 0);
-                const displayVal = val == null ? "—" : `${fmt(numericVal)} ${unit}`;
-                const status = val == null ? { label: "待估", c: "is-low" } : getNutritionStatusLabel(numericVal, field as string);
-                return (
-                  <div className="nutrition-card" key={field as string}>
-                    <span className="nutrition-label">{label}</span>
-                    <b>{displayVal}</b>
-                    <span className={`nutrition-status ${status.c}`}>{status.label}</span>
-                    <div className="nutrition-note">{note}</div>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="summary-list" style={{ marginTop: "14px" }}>
-              {(latest.nutritionAdvice?.length ? latest.nutritionAdvice : [
-                "今天营养维度还不完整，继续记录餐食后会自动补充建议。"
-              ]).map((item, idx) => (
-                <div className="summary-item" key={idx}>
-                  <span className="dot"></span>
-                  <span>{item}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
       </section>
 
       {/* 7. Floating Add Button */}
@@ -1201,7 +1583,7 @@ export default function FitMeDashboard() {
         <div className="modal-overlay">
           <div className="modal-card">
             <div className="modal-header">
-              <h2 className="modal-title">记一笔</h2>
+              <h2 className="modal-title">记录一笔饮食</h2>
               <button className="modal-close" onClick={() => setShowModal(false)}>
                 &times;
               </button>
@@ -1233,15 +1615,14 @@ export default function FitMeDashboard() {
                       <option value="lunch">午餐 🍱</option>
                       <option value="dinner">晚餐 🥩</option>
                       <option value="snack">加餐/饮品 ☕</option>
-                      <option value="exercise">运动消耗 🏃‍♂️</option>
                     </select>
                   </div>
                   <div className="form-group">
-                    <label className="form-label">餐食/运动名称</label>
+                    <label className="form-label">餐食名称</label>
                     <input
                       type="text"
                       required
-                      placeholder={formType === "exercise" ? "e.g., 跑步 5 公里" : "e.g., 煎鸡胸肉沙拉"}
+                      placeholder="e.g., 煎鸡胸肉沙拉"
                       className="form-input"
                       value={formTitle}
                       onChange={e => setFormTitle(e.target.value)}
@@ -1264,13 +1645,11 @@ export default function FitMeDashboard() {
                     />
                   </div>
                   <div className="form-group">
-                    <label className="form-label">
-                      {formType === "exercise" ? "心率/强度 (可选)" : "蛋白质 (g, 可选)"}
-                    </label>
+                    <label className="form-label">蛋白质 (g, 可选)</label>
                     <input
                       type="number"
                       min="0"
-                      placeholder={formType === "exercise" ? "e.g., 140" : "e.g., 28"}
+                      placeholder="e.g., 28"
                       className="form-input"
                       value={formProtein}
                       onChange={e => setFormProtein(e.target.value)}
@@ -1290,110 +1669,35 @@ export default function FitMeDashboard() {
                   />
                 </div>
 
-                {/* Image upload (only show if not recording exercise) */}
-                {formType !== "exercise" && (
-                  <div className="form-group">
-                    <label className="form-label">上传餐食实拍</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      ref={fileInputRef}
-                      style={{ display: "none" }}
-                      onChange={handleImageChange}
-                    />
-                    {!imagePreview ? (
-                      <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
-                        <span>📷 点击拍照或上传照片</span>
-                        <span className="upload-zone-text">大小支持 8MB 以内</span>
-                      </div>
-                    ) : (
-                      <div className="upload-zone" style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                        <div className="upload-preview-container">
-                          <img className="upload-preview" src={imagePreview} alt="Preview" />
-                          <div className="upload-remove" onClick={removeSelectedImage}>
-                            &times;
-                          </div>
-                        </div>
-                        <span className="upload-zone-text" style={{ alignSelf: "center" }}>
-                          照片选择成功
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Optional nutrition expander */}
-                {formType !== "exercise" && (
-                  <div className="form-group">
-                    <span
-                      className="optional-toggle"
-                      onClick={() => setShowNutritionFields(!showNutritionFields)}
-                    >
-                      {showNutritionFields ? "▲ 隐藏更多微量元素" : "▼ 录入微量元素 (可选)"}
-                    </span>
-
-                    {showNutritionFields && (
-                      <div className="optional-fields">
-                        <div className="form-group">
-                          <label className="form-label">膳食纤维 (g)</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            className="form-input"
-                            value={nutrients.fiberG}
-                            onChange={e => setNutrients({ ...nutrients, fiberG: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">钠 (mg)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={nutrients.sodiumMg}
-                            onChange={e => setNutrients({ ...nutrients, sodiumMg: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">钙 (mg)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={nutrients.calciumMg}
-                            onChange={e => setNutrients({ ...nutrients, calciumMg: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">钾 (mg)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={nutrients.potassiumMg}
-                            onChange={e => setNutrients({ ...nutrients, potassiumMg: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">铁 (mg)</label>
-                          <input
-                            type="number"
-                            step="0.1"
-                            className="form-input"
-                            value={nutrients.ironMg}
-                            onChange={e => setNutrients({ ...nutrients, ironMg: e.target.value })}
-                          />
-                        </div>
-                        <div className="form-group">
-                          <label className="form-label">维C (mg)</label>
-                          <input
-                            type="number"
-                            className="form-input"
-                            value={nutrients.vitaminCMg}
-                            onChange={e => setNutrients({ ...nutrients, vitaminCMg: e.target.value })}
-                          />
+                {/* Image upload */}
+                <div className="form-group">
+                  <label className="form-label">上传餐食实拍</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                    onChange={handleImageChange}
+                  />
+                  {!imagePreview ? (
+                    <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
+                      <span>📷 点击拍照或上传照片</span>
+                      <span className="upload-zone-text">大小支持 8MB 以内</span>
+                    </div>
+                  ) : (
+                    <div className="upload-zone" style={{ flexDirection: "row", justifyContent: "space-between" }}>
+                      <div className="upload-preview-container">
+                        <img className="upload-preview" src={imagePreview} alt="Preview" />
+                        <div className="upload-remove" onClick={removeSelectedImage}>
+                          &times;
                         </div>
                       </div>
-                    )}
-                  </div>
-                )}
+                      <span className="upload-zone-text" style={{ alignSelf: "center" }}>
+                        照片选择成功
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="modal-footer">
                 <button
