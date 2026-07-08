@@ -112,6 +112,234 @@ const nutritionFields = [
   "vitaminB12Mcg"
 ];
 
+const translations = {
+  en: {
+    lockTitle: "Secure Access",
+    lockPasscode: "Enter Passcode",
+    lockPlaceholder: "e.g., 1234",
+    lockError: "Incorrect passcode, please try again",
+    lockButton: "Unlock Dashboard",
+    onboardTitle: "Configure Profile",
+    onboardAge: "Age",
+    onboardHeight: "Height (cm)",
+    onboardWeight: "Weight (kg)",
+    onboardTarget: "Target Weight (kg, optional)",
+    onboardTargetPlaceholder: "Leave blank for current - 5kg",
+    onboardSex: "Sex",
+    onboardMale: "Male",
+    onboardFemale: "Female",
+    onboardSubmit: "Save & Generate Plan",
+    onboardSaving: "Initializing...",
+    topTitle: "FitMe Dashboard",
+    topSubcopy: "Track fasting, weight, period, and bowel movements in one clean view.",
+    topWeightStatus: "Weight: {W}kg · Goal: {G}kg",
+    fastActive: "🔥 Fasting Active",
+    fastIdle: "⏸️ Not Fasting",
+    fastElapsed: "Elapsed Time",
+    fastCalculating: "Calculating...",
+    fastStart: "Start Fasting",
+    fastEnd: "End Fasting",
+    fastSaving: "Saving...",
+    sumTitle: "Today's Summary",
+    sumFasting: "Fasting Today",
+    sumFastingUnit: "hours",
+    sumFastingNote: "Completed fasting duration today",
+    sumWeight: "Weight Logged",
+    sumWeightNoteActive: "Weight recorded today",
+    sumWeightNoteInactive: "Using latest weight record",
+    periodTitle: "🌸 Period Log",
+    periodSwitchNone: "Non-Period Day ⏸️",
+    periodSwitchLight: "Period: Light 🌸",
+    periodSwitchMedium: "Period: Medium 🌸🌸",
+    periodSwitchHeavy: "Period: Heavy 🌸🌸🌸",
+    periodActive: "Period Day {X}",
+    periodInactive: "Non-Period Status",
+    periodFlowLight: "Light",
+    periodFlowMedium: "Medium",
+    periodFlowHeavy: "Heavy",
+    periodNoteActive: "Current Flow: {F}",
+    periodNoteInactive: "Select flow above to record period flow",
+    bowelTitle: "💩 Bowel Movement Log",
+    bowelButton: "💩 Log Bowel",
+    bowelCount: "Bowel movements today: {X}",
+    bowelEmpty: "No bowel movements logged today",
+    weightTitle: "⚖️ Weight Log",
+    weightPlaceholder: "e.g., 65.4",
+    weightButton: "Save",
+    weightNoteActive: "Weight recorded today",
+    weightNoteInactive: "Latest weight: {X} kg",
+    weightNotRecorded: "Not Recorded",
+    chartTitle: "Data Analysis & Trends",
+    chartFasting: "⏳ Fasting",
+    chartPeriod: "🌸 Period",
+    chartBowel: "💩 Bowels",
+    chartWeight: "⚖️ Weight",
+    chartEmpty: "📊 No trend data available",
+    chartEmptyNote: "Record your stats to generate trends.",
+    chartFastingTarget: "16h Fasting Target",
+    chartBowelUnit: "times",
+    chartPeriodLabel0: "No Period",
+    chartPeriodLabel1: "Light",
+    chartPeriodLabel2: "Medium",
+    chartPeriodLabel3: "Heavy",
+    settingsButton: "⚙️ Settings",
+    settingsTitle: "Settings",
+    settingsLang: "Language",
+    settingsClose: "Close",
+    settingsSaveProfile: "Save Profile"
+  },
+  zh: {
+    lockTitle: "安全访问",
+    lockPasscode: "输入安全密码",
+    lockPlaceholder: "例如 1234",
+    lockError: "密码校验错误，请重新输入",
+    lockButton: "进入健康看板",
+    onboardTitle: "初始化个人健康档案",
+    onboardAge: "年龄",
+    onboardHeight: "身高 (cm)",
+    onboardWeight: "当前体重 (kg)",
+    onboardTarget: "目标体重 (kg, 可选)",
+    onboardTargetPlaceholder: "留空则默认为当前体重减 5kg",
+    onboardSex: "性别",
+    onboardMale: "男",
+    onboardFemale: "女",
+    onboardSubmit: "生成我的健康计划",
+    onboardSaving: "正在初始化...",
+    topTitle: "FitMe 健康看板",
+    topSubcopy: "专注断食时间、每日体重、经期生理和排便状况的健康追踪管理。",
+    topWeightStatus: "当前体重 {W}kg · 目标 {G}kg",
+    fastActive: "🔥 断食燃烧中",
+    fastIdle: "⏸️ 尚未断食",
+    fastElapsed: "已断食时长",
+    fastCalculating: "计算中...",
+    fastStart: "开始断食",
+    fastEnd: "结束断食",
+    fastSaving: "保存中...",
+    sumTitle: "今日记录总览",
+    sumFasting: "今日累计断食",
+    sumFastingUnit: "小时",
+    sumFastingNote: "今日已完成断食计时时长",
+    sumWeight: "今日体重记录",
+    sumWeightNoteActive: "今日已称重记录",
+    sumWeightNoteInactive: "使用最近一次体重数据",
+    periodTitle: "🌸 经期记录",
+    periodSwitchNone: "非经期 ⏸️",
+    periodSwitchLight: "经期：流量偏少 🌸",
+    periodSwitchMedium: "经期：流量中等 🌸🌸",
+    periodSwitchHeavy: "经期：流量偏多 🌸🌸🌸",
+    periodActive: "经期中 · 第 {X} 天",
+    periodInactive: "非经期状态",
+    periodFlowLight: "偏少",
+    periodFlowMedium: "中等",
+    periodFlowHeavy: "偏多",
+    periodNoteActive: "当前流量：{F}",
+    periodNoteInactive: "若经期来潮，请在上方选择流量进行记录",
+    bowelTitle: "💩 每日排便记录",
+    bowelButton: "💩 记一次排便",
+    bowelCount: "今日已排便 {X} 次",
+    bowelEmpty: "今日暂无排便记录",
+    weightTitle: "⚖️ 今日体重记录",
+    weightPlaceholder: "例如 65.4",
+    weightButton: "保存",
+    weightNoteActive: "今日已记录体重",
+    weightNoteInactive: "最近体重: {X} kg",
+    weightNotRecorded: "未记录",
+    chartTitle: "数据分析统计",
+    chartFasting: "⏳ 断食趋势",
+    chartPeriod: "🌸 经期趋势",
+    chartBowel: "💩 排便趋势",
+    chartWeight: "⚖️ 体重趋势",
+    chartEmpty: "📊 暂无历史趋势数据",
+    chartEmptyNote: "开始记录断食与生理体征后，图表将自动生成。",
+    chartFastingTarget: "16h 断食目标线",
+    chartBowelUnit: "次",
+    chartPeriodLabel0: "非经期",
+    chartPeriodLabel1: "偏少",
+    chartPeriodLabel2: "中等",
+    chartPeriodLabel3: "偏多",
+    settingsButton: "⚙️ 设置",
+    settingsTitle: "设置",
+    settingsLang: "语言",
+    settingsClose: "关闭",
+    settingsSaveProfile: "保存配置"
+  },
+  ja: {
+    lockTitle: "安全なアクセス",
+    lockPasscode: "パスコードを入力",
+    lockPlaceholder: "例：1234",
+    lockError: "パスコードが正しくありません",
+    lockButton: "解除する",
+    onboardTitle: "プロフィールの初期設定",
+    onboardAge: "年齢",
+    onboardHeight: "身長 (cm)",
+    onboardWeight: "現在の体重 (kg)",
+    onboardTarget: "目標体重 (kg, 任意)",
+    onboardTargetPlaceholder: "空欄の場合は現在の体重 -5kg",
+    onboardSex: "性別",
+    onboardMale: "男性",
+    onboardFemale: "女性",
+    onboardSubmit: "プランを生成",
+    onboardSaving: "初期化中...",
+    topTitle: "FitMe ダッシュボード",
+    topSubcopy: "断食时间、体重、生理周期、便通の健康管理ダッシュボード。",
+    topWeightStatus: "現在: {W}kg · 目標: {G}kg",
+    fastActive: "🔥 断食実行中",
+    fastIdle: "⏸️ 断食していません",
+    fastElapsed: "経過時間",
+    fastCalculating: "計算中...",
+    fastStart: "断食開始",
+    fastEnd: "断食終了",
+    fastSaving: "保存中...",
+    sumTitle: "本日のサマリー",
+    sumFasting: "本日の断食",
+    sumFastingUnit: "時間",
+    sumFastingNote: "本日終了した断食時間",
+    sumWeight: "本日の体重",
+    sumWeightNoteActive: "本日記録済み",
+    sumWeightNoteInactive: "前回のデータを使用",
+    periodTitle: "🌸 生理周期",
+    periodSwitchNone: "生理期間外 ⏸️",
+    periodSwitchLight: "生理：経血量少なめ 🌸",
+    periodSwitchMedium: "生理：経血量ふつう 🌸🌸",
+    periodSwitchHeavy: "生理：経血量多め 🌸🌸🌸",
+    periodActive: "生理 {X} 日目",
+    periodInactive: "生理期間外",
+    periodFlowLight: "少量",
+    periodFlowMedium: "ふつう",
+    periodFlowHeavy: "多量",
+    periodNoteActive: "現在の経血量：{F}",
+    periodNoteInactive: "生理が始まったら、上で経血量を選択してください",
+    bowelTitle: "💩 便通記録",
+    bowelButton: "💩 便通を記録",
+    bowelCount: "本日 {X} 回便通あり",
+    bowelEmpty: "本日の記録はありません",
+    weightTitle: "⚖️ 体重記録",
+    weightPlaceholder: "例：65.4",
+    weightButton: "保存",
+    weightNoteActive: "本日記録済み",
+    weightNoteInactive: "前回の体重: {X} kg",
+    weightNotRecorded: "未記録",
+    chartTitle: "データ分析推移",
+    chartFasting: "⏳ 断食推移",
+    chartPeriod: "🌸 生理推移",
+    chartBowel: "💩 便通推移",
+    chartWeight: "⚖️ 体重推移",
+    chartEmpty: "📊 履歴データがありません",
+    chartEmptyNote: "断食や体重の记录を開始すると、グラフが自動生成されます。",
+    chartFastingTarget: "16h 断食目標線",
+    chartBowelUnit: "回",
+    chartPeriodLabel0: "生理日外",
+    chartPeriodLabel1: "少量",
+    chartPeriodLabel2: "ふつう",
+    chartPeriodLabel3: "多量",
+    settingsButton: "⚙️ 設定",
+    settingsTitle: "設定",
+    settingsLang: "言語",
+    settingsClose: "閉じる",
+    settingsSaveProfile: "プロフィール保存"
+  }
+};
+
 export default function FitMeDashboard() {
   // Authentication state
   const [authenticated, setAuthenticated] = useState<boolean | null>(null);
@@ -145,6 +373,20 @@ export default function FitMeDashboard() {
   const [isVitalsSaving, setIsVitalsSaving] = useState(false);
   const [weightInput, setWeightInput] = useState("");
 
+  // Multi-language & Settings state
+  const [lang, setLang] = useState<"en" | "zh" | "ja">("en");
+  const [showSettings, setShowSettings] = useState(false);
+
+  const t = (key: string, variables?: Record<string, any>) => {
+    const text = (translations[lang] as any)?.[key] || (translations["en"] as any)?.[key] || key;
+    if (!variables) return text;
+    let result = text;
+    for (const [k, v] of Object.entries(variables)) {
+      result = result.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+    }
+    return result;
+  };
+
   // Form Fields
   const [formDate, setFormDate] = useState("");
   const [formType, setFormType] = useState("breakfast");
@@ -152,6 +394,12 @@ export default function FitMeDashboard() {
   const [formKcal, setFormKcal] = useState("");
   const [formProtein, setFormProtein] = useState("");
   const [formDescription, setFormDescription] = useState("");
+
+  // Settings form fields
+  const [settingsSex, setSettingsSex] = useState("male");
+  const [settingsAge, setSettingsAge] = useState("");
+  const [settingsHeight, setSettingsHeight] = useState("");
+  const [settingsTargetWeight, setSettingsTargetWeight] = useState("");
   
   // Image Upload state
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -184,6 +432,14 @@ export default function FitMeDashboard() {
     
     // Set default form date to today
     setFormDate(new Date().toISOString().slice(0, 10));
+
+    // Load cached language (default to en)
+    const cachedLang = localStorage.getItem("fitme_lang") as "en" | "zh" | "ja" | null;
+    if (cachedLang && ["en", "zh", "ja"].includes(cachedLang)) {
+      setLang(cachedLang);
+    } else {
+      setLang("en");
+    }
   }, []);
 
   // Fasting Timer Effect
@@ -284,6 +540,60 @@ export default function FitMeDashboard() {
       alert("结束断食失败: " + e.message);
     } finally {
       setIsFastingSaving(false);
+    }
+  };
+
+  const handleOpenSettings = () => {
+    if (data) {
+      setSettingsSex(data.profile.sex);
+      setSettingsAge(data.profile.age.toString());
+      setSettingsHeight(data.profile.heightCm.toString());
+      setSettingsTargetWeight(data.profile.targetWeightRangeKg?.[0]?.toString() || "");
+      setShowSettings(true);
+    }
+  };
+
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data) return;
+    setIsVitalsSaving(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const age = parseInt(settingsAge);
+      const height = parseFloat(settingsHeight);
+      const targetW = parseFloat(settingsTargetWeight);
+      if (isNaN(age) || isNaN(height)) {
+        alert("请输入有效的年龄和身高");
+        return;
+      }
+      
+      const newTarget: [number, number] = isNaN(targetW) ? [data.profile.latestWeightKg - 5, data.profile.latestWeightKg - 5] : [targetW, targetW];
+      
+      const updatedProfile = {
+        ...data.profile,
+        sex: settingsSex,
+        age,
+        heightCm: height,
+        targetWeightRangeKg: newTarget
+      };
+      
+      const updatedData: FitMeData = {
+        ...data,
+        profile: updatedProfile
+      };
+      
+      const res = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setData(updatedData);
+      setShowSettings(false);
+    } catch (e: any) {
+      alert("保存设置失败: " + e.message);
+    } finally {
+      setIsVitalsSaving(false);
     }
   };
 
@@ -493,8 +803,8 @@ export default function FitMeDashboard() {
     if (last10Days.length === 0) {
       return (
         <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
-          <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>📊 暂无历史趋势数据</p>
-          <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>开始记录断食与生理体征后，图表将自动生成。</p>
+          <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>{t("chartEmpty")}</p>
+          <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>{t("chartEmptyNote")}</p>
         </div>
       );
     }
@@ -543,7 +853,7 @@ export default function FitMeDashboard() {
           {maxVal >= 16 && (
             <g>
               <line x1={padLeft} y1={targetY} x2={width - padRight} y2={targetY} stroke="rgba(217, 83, 79, 0.4)" strokeWidth={1.5} strokeDasharray="3 3" />
-              <text x={width - padRight - 5} y={targetY - 5} textAnchor="end" fill="rgba(217, 83, 79, 0.9)" fontSize={8} fontWeight="bold">16h 断食目标线</text>
+              <text x={width - padRight - 5} y={targetY - 5} textAnchor="end" fill="rgba(217, 83, 79, 0.9)" fontSize={8} fontWeight="bold">{t("chartFastingTarget")}</text>
             </g>
           )}
 
@@ -601,7 +911,7 @@ export default function FitMeDashboard() {
 
           {[0, 1, 2, 3].map(flow => {
             const y = getY(flow);
-            const label = flow === 0 ? "非经期" : flow === 1 ? "偏少" : flow === 2 ? "中等" : "偏多";
+            const label = flow === 0 ? t("chartPeriodLabel0") : flow === 1 ? t("chartPeriodLabel1") : flow === 2 ? t("chartPeriodLabel2") : t("chartPeriodLabel3");
             return (
               <g key={flow}>
                 <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255, 139, 119, 0.08)" strokeWidth={1} />
@@ -662,7 +972,7 @@ export default function FitMeDashboard() {
             return (
               <g key={b}>
                 <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{b}次</text>
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{b} {t("chartBowelUnit")}</text>
               </g>
             );
           })}
@@ -706,8 +1016,8 @@ export default function FitMeDashboard() {
       if (weightDays.length === 0) {
         return (
           <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
-            <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>📊 暂无体重变化数据</p>
-            <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>在上方“今日体重记录”中保存后，这里将显示趋势。</p>
+            <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>{t("weightTitle")}</p>
+            <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>{t("chartEmptyNote")}</p>
           </div>
         );
       }
@@ -1177,13 +1487,31 @@ export default function FitMeDashboard() {
   if (authenticated === false) {
     return (
       <div className="lock-screen-overlay">
+        {/* Language select on top right */}
+        <div style={{ position: "absolute", top: "20px", right: "20px", zIndex: 10 }}>
+          <select
+            className="form-select"
+            style={{ width: "auto", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "12px" }}
+            value={lang}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              setLang(val);
+              localStorage.setItem("fitme_lang", val);
+            }}
+          >
+            <option value="en">English 🇬🇧</option>
+            <option value="zh">简体中文 🇨🇳</option>
+            <option value="ja">日本語 🇯🇵</option>
+          </select>
+        </div>
+
         {/* Glowing background orbs */}
         <div className="lock-bg-orb lock-bg-orb-1" />
         <div className="lock-bg-orb lock-bg-orb-2" />
 
         <form className={`lock-card ${shake ? "shake" : ""}`} onSubmit={handleUnlock}>
-          <div className="lock-title">FitMe 锁定</div>
-          <div className="lock-subtitle">请输入您的安全密码以访问健康看板</div>
+          <div className="lock-title">{t("lockTitle")}</div>
+          <div className="lock-subtitle">{t("lockPasscode")}</div>
           
           <div className="passcode-container">
             <input
@@ -1212,9 +1540,9 @@ export default function FitMeDashboard() {
             </div>
           </div>
 
-          {passcodeError && <div className="lock-error">{passcodeError}</div>}
+          {passcodeError && <div className="lock-error">{t("lockError")}</div>}
           <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "20px" }}>
-            验证并解锁
+            {t("lockButton")}
           </button>
         </form>
       </div>
@@ -1228,25 +1556,43 @@ export default function FitMeDashboard() {
   if (!isProfileConfigured) {
     return (
       <div className="lock-screen-overlay">
+        {/* Language select on top right */}
+        <div style={{ position: "absolute", top: "20px", right: "20px", zIndex: 10 }}>
+          <select
+            className="form-select"
+            style={{ width: "auto", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "12px" }}
+            value={lang}
+            onChange={(e) => {
+              const val = e.target.value as any;
+              setLang(val);
+              localStorage.setItem("fitme_lang", val);
+            }}
+          >
+            <option value="en">English 🇬🇧</option>
+            <option value="zh">简体中文 🇨🇳</option>
+            <option value="ja">日本語 🇯🇵</option>
+          </select>
+        </div>
+
         {/* Glowing background orbs */}
         <div className="lock-bg-orb lock-bg-orb-1" />
         <div className="lock-bg-orb lock-bg-orb-2" />
 
         <form className="lock-card" style={{ width: "min(440px, 94vw)", padding: "30px 24px" }} onSubmit={handleSetupSubmit}>
-          <div className="lock-title">创建健康档案</div>
-          <div className="lock-subtitle">配置您的身体数据，系统将自动生成 BMR 和减脂热量目标</div>
+          <div className="lock-title">{t("onboardTitle")}</div>
+          <div className="lock-subtitle">Configuring bodily metrics generates BMR & caloric goals.</div>
 
           <div className="modal-body" style={{ padding: 0, gap: "14px", textAlign: "left", margin: "20px 0" }}>
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">性别</label>
+                <label className="form-label">{t("onboardSex")}</label>
                 <select className="form-select" value={setupSex} onChange={e => setSetupSex(e.target.value)}>
-                  <option value="male">男 ♂</option>
-                  <option value="female">女 ♀</option>
+                  <option value="male">{t("onboardMale")} ♂</option>
+                  <option value="female">{t("onboardFemale")} ♀</option>
                 </select>
               </div>
               <div className="form-group">
-                <label className="form-label">年龄 (岁)</label>
+                <label className="form-label">{t("onboardAge")}</label>
                 <input
                   type="number"
                   required
@@ -1261,7 +1607,7 @@ export default function FitMeDashboard() {
 
             <div className="form-row">
               <div className="form-group">
-                <label className="form-label">身高 (cm)</label>
+                <label className="form-label">{t("onboardHeight")}</label>
                 <input
                   type="number"
                   required
@@ -1273,7 +1619,7 @@ export default function FitMeDashboard() {
                 />
               </div>
               <div className="form-group">
-                <label className="form-label">当前体重 (kg)</label>
+                <label className="form-label">{t("onboardWeight")}</label>
                 <input
                   type="number"
                   required
@@ -1287,13 +1633,13 @@ export default function FitMeDashboard() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">目标体重 (kg, 可选)</label>
+              <label className="form-label">{t("onboardTarget")}</label>
               <input
                 type="number"
                 min="10"
                 max="300"
                 className="form-input"
-                placeholder="留空则默认为当前体重减 5kg"
+                placeholder={t("onboardTargetPlaceholder")}
                 value={setupTargetWeight}
                 onChange={e => setSetupTargetWeight(e.target.value)}
               />
@@ -1301,7 +1647,7 @@ export default function FitMeDashboard() {
           </div>
 
           <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={setupLoading}>
-            {setupLoading ? "正在初始化..." : "生成我的减脂计划"}
+            {setupLoading ? t("onboardSaving") : t("onboardSubmit")}
           </button>
         </form>
       </div>
@@ -1411,13 +1757,23 @@ export default function FitMeDashboard() {
           <p className="eyebrow" id="periodLabel">
             Nutrition Log · {data.periodLabel}
           </p>
-          <h1 id="pageTitle">{safeCopy.title}</h1>
+          <h1 id="pageTitle">{t("topTitle")}</h1>
           <p className="subcopy">
-            专注断食时间、每日体重、经期生理和排便状况的健康追踪管理。
+            {t("topSubcopy")}
           </p>
         </div>
-        <div className="status-pill" id="statusPill">
-          当前体重 {data.profile.latestWeightKg}kg · 目标 {targetWeightLabel}
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <div className="status-pill" id="statusPill" style={{ margin: 0 }}>
+            {t("topWeightStatus", { W: data.profile.latestWeightKg, G: targetWeightLabel })}
+          </div>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px solid var(--glass-edge)" }}
+            onClick={handleOpenSettings}
+          >
+            {t("settingsButton")}
+          </button>
         </div>
       </div>
 
@@ -1425,10 +1781,10 @@ export default function FitMeDashboard() {
       <section className="fasting-banner" style={{ margin: "24px", background: "rgba(255,255,255,0.7)", padding: "18px 20px", borderRadius: "16px", border: "1px solid var(--glass-edge)", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 10px 30px rgba(21, 36, 29, 0.05)", backdropFilter: "blur(20px)" }}>
         <div>
           <p className="section-title" style={{ margin: "0 0 6px" }}>
-            {data?.fastingState?.startTime ? "🔥 断食燃烧中" : "⏸️ 尚未断食"}
+            {data?.fastingState?.startTime ? t("fastActive") : t("fastIdle")}
           </p>
           <p className="metric-value" style={{ fontSize: "22px", margin: 0, color: data?.fastingState?.startTime ? "var(--green)" : "var(--muted)", letterSpacing: "1px" }}>
-            {data?.fastingState?.startTime ? fastingElapsed || "计算中..." : "--"}
+            {data?.fastingState?.startTime ? fastingElapsed || t("fastCalculating") : "--"}
           </p>
         </div>
         <button 
@@ -1437,7 +1793,7 @@ export default function FitMeDashboard() {
           onClick={data?.fastingState?.startTime ? handleEndFast : handleStartFast}
           disabled={isFastingSaving}
         >
-          {isFastingSaving ? "保存中..." : (data?.fastingState?.startTime ? "结束断食" : "开始断食")}
+          {isFastingSaving ? t("fastSaving") : (data?.fastingState?.startTime ? t("fastEnd") : t("fastStart"))}
         </button>
       </section>
 
@@ -1445,21 +1801,21 @@ export default function FitMeDashboard() {
       <section className="hero" style={{ gridTemplateColumns: "1fr", margin: "0 24px 24px" }}>
         <div className="panel" style={{ margin: 0 }}>
           <div className="panel-inner" style={{ marginBottom: "14px" }}>
-            <p className="section-title">今日记录总览</p>
+            <p className="section-title">{t("sumTitle")}</p>
           </div>
           <div className="hero-grid" id="metricGrid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
             <div className="metric">
-              <span className="metric-label">今日累计断食</span>
-              <span className="metric-value">{fmt(latest.fastingDurationHours || 0)} 小时</span>
+              <span className="metric-label">{t("sumFasting")}</span>
+              <span className="metric-value">{fmt(latest.fastingDurationHours || 0)} {t("sumFastingUnit")}</span>
               <span className="metric-note">
-                今日已完成断食计时时长
+                {t("sumFastingNote")}
               </span>
             </div>
             <div className="metric">
-              <span className="metric-label">今日体重记录</span>
+              <span className="metric-label">{t("sumWeight")}</span>
               <span className="metric-value">{latest.weightKg ? `${latest.weightKg} kg` : `${data.profile.latestWeightKg} kg`}</span>
               <span className="metric-note">
-                {latest.weightKg ? "今日已称重记录" : "使用最近一次体重数据"}
+                {latest.weightKg ? t("sumWeightNoteActive") : t("sumWeightNoteInactive")}
               </span>
             </div>
           </div>
@@ -1473,7 +1829,7 @@ export default function FitMeDashboard() {
           <div className="panel-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <p className="section-title" style={{ margin: 0, color: latest.period ? "#ff7c7c" : "inherit" }}>
-                🌸 经期记录
+                {t("periodTitle")}
               </p>
               <div className="period-switch-wrap">
                 <select
@@ -1486,10 +1842,10 @@ export default function FitMeDashboard() {
                   }}
                   disabled={isVitalsSaving}
                 >
-                  <option value="none">非经期 ⏸️</option>
-                  <option value="light">经期：流量偏少 🌸</option>
-                  <option value="medium">经期：流量中等 🌸🌸</option>
-                  <option value="heavy">经期：流量偏多 🌸🌸🌸</option>
+                  <option value="none">{t("periodSwitchNone")}</option>
+                  <option value="light">{t("periodSwitchLight")}</option>
+                  <option value="medium">{t("periodSwitchMedium")}</option>
+                  <option value="heavy">{t("periodSwitchHeavy")}</option>
                 </select>
               </div>
             </div>
@@ -1498,16 +1854,16 @@ export default function FitMeDashboard() {
               {latest.period ? (
                 <div>
                   <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
-                    经期中 · 第 {calculatePeriodDay(latest.date)} 天
+                    {t("periodActive", { X: calculatePeriodDay(latest.date) })}
                   </h3>
                   <span style={{ fontSize: "12px", opacity: 0.8 }}>
-                    当前流量：{latest.period.flow === "light" ? "偏少" : latest.period.flow === "heavy" ? "偏多" : "中等"}
+                    {t("periodNoteActive", { F: latest.period.flow === "light" ? t("periodFlowLight") : latest.period.flow === "heavy" ? t("periodFlowHeavy") : t("periodFlowMedium") })}
                   </span>
                 </div>
               ) : (
                 <div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>非经期状态</h3>
-                  <span style={{ fontSize: "12px", opacity: 0.6 }}>若经期来潮，请在上方选择流量进行记录</span>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>{t("periodInactive")}</h3>
+                  <span style={{ fontSize: "12px", opacity: 0.6 }}>{t("periodNoteInactive")}</span>
                 </div>
               )}
             </div>
@@ -1518,26 +1874,26 @@ export default function FitMeDashboard() {
         <div className="panel vitals-card bowel-card" style={{ margin: 0 }}>
           <div className="panel-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <p className="section-title" style={{ margin: 0 }}>💩 每日排便记录</p>
+              <p className="section-title" style={{ margin: 0 }}>{t("bowelTitle")}</p>
               <button
                 className="btn btn-primary"
                 style={{ padding: "6px 12px", fontSize: "12px" }}
                 onClick={() => handleQuickBowelMovement(latest.date)}
                 disabled={isVitalsSaving}
               >
-                💩 记一次排便
+                {t("bowelButton")}
               </button>
             </div>
 
             <div style={{ marginTop: "16px" }}>
               <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
-                今日已排便 {(latest.bowelMovements || []).length} 次
+                {t("bowelCount", { X: (latest.bowelMovements || []).length })}
               </h3>
               
               {/* Bowel list */}
               <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px", maxHeight: "80px", overflowY: "auto" }}>
                 {(latest.bowelMovements || []).length === 0 ? (
-                  <span style={{ fontSize: "12px", opacity: 0.6 }}>今日暂无排便记录</span>
+                  <span style={{ fontSize: "12px", opacity: 0.6 }}>{t("bowelEmpty")}</span>
                 ) : (
                   (latest.bowelMovements || []).map((item) => (
                     <span 
@@ -1551,7 +1907,7 @@ export default function FitMeDashboard() {
                         onClick={() => handleDeleteBowelMovement(latest.date, item.id)}
                         disabled={isVitalsSaving}
                       >
-                        ×
+                        &times;
                       </button>
                     </span>
                   ))
@@ -1565,7 +1921,7 @@ export default function FitMeDashboard() {
         <div className="panel vitals-card weight-card" style={{ margin: 0 }}>
           <div className="panel-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <p className="section-title" style={{ margin: 0 }}>⚖️ 今日体重记录</p>
+              <p className="section-title" style={{ margin: 0 }}>{t("weightTitle")}</p>
               <div style={{ display: "flex", gap: "6px" }}>
                 <input
                   type="number"
@@ -1586,12 +1942,12 @@ export default function FitMeDashboard() {
                       handleSaveWeight(latest.date, w);
                       setWeightInput("");
                     } else {
-                      alert("请输入有效的体重数字（如 65.4）");
+                      alert(lang === "zh" ? "请输入有效的体重数字（如 65.4）" : lang === "ja" ? "有効な体重を入力してください（例：65.4）" : "Please enter a valid weight (e.g. 65.4)");
                     }
                   }}
                   disabled={isVitalsSaving}
                 >
-                  保存
+                  {t("weightButton")}
                 </button>
               </div>
             </div>
@@ -1600,17 +1956,17 @@ export default function FitMeDashboard() {
               {latest.weightKg ? (
                 <div>
                   <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
-                    {latest.weightKg} kg
+                    {t("weightActive", { X: latest.weightKg })}
                   </h3>
                   <span style={{ fontSize: "12px", opacity: 0.8 }}>
-                    今日已记录体重
+                    {t("weightNoteActive")}
                   </span>
                 </div>
               ) : (
                 <div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>未记录</h3>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>{t("weightNotRecorded")}</h3>
                   <span style={{ fontSize: "12px", opacity: 0.6 }}>
-                    最近体重: {data?.profile?.latestWeightKg ? `${data.profile.latestWeightKg} kg` : "无"}
+                    {t("weightNoteInactive", { X: data?.profile?.latestWeightKg ? data.profile.latestWeightKg : "0.0" })}
                   </span>
                 </div>
               )}
@@ -1619,40 +1975,40 @@ export default function FitMeDashboard() {
         </div>
       </section>
 
-      {/* 5. 3-Tab Statistical Chart Section */}
+      {/* 5. 4-Tab Statistical Chart Section */}
       <section className="section" style={{ gridTemplateColumns: "1fr", margin: "0 24px 24px" }}>
         <div className="panel wide" style={{ margin: 0 }}>
           <div className="panel-inner">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
-              <p className="section-title" style={{ margin: 0 }}>数据分析统计</p>
+              <p className="section-title" style={{ margin: 0 }}>{t("chartTitle")}</p>
               <div className="meal-toolbar" style={{ margin: 0 }}>
                 <button
                   type="button"
                   className={`meal-filter ${activeChartTab === "fasting" ? "is-active" : ""}`}
                   onClick={() => setActiveChartTab("fasting")}
                 >
-                  ⏳ 断食趋势
+                  {t("chartFasting")}
                 </button>
                 <button
                   type="button"
                   className={`meal-filter ${activeChartTab === "period" ? "is-active" : ""}`}
                   onClick={() => setActiveChartTab("period")}
                 >
-                  🌸 经期趋势
+                  {t("chartPeriod")}
                 </button>
                 <button
                   type="button"
                   className={`meal-filter ${activeChartTab === "bowel" ? "is-active" : ""}`}
                   onClick={() => setActiveChartTab("bowel")}
                 >
-                  💩 排便趋势
+                  {t("chartBowel")}
                 </button>
                 <button
                   type="button"
                   className={`meal-filter ${activeChartTab === "weight" ? "is-active" : ""}`}
                   onClick={() => setActiveChartTab("weight")}
                 >
-                  ⚖️ 体重趋势
+                  {t("chartWeight")}
                 </button>
               </div>
             </div>
@@ -1662,6 +2018,108 @@ export default function FitMeDashboard() {
           </div>
         </div>
       </section>
+
+      {/* 8. Settings Modal */}
+      {showSettings && (
+        <div className="modal-overlay" style={{ zIndex: 100 }}>
+          <div className="modal-card" style={{ width: "min(440px, 94vw)" }}>
+            <div className="modal-header">
+              <h2 className="modal-title">{t("settingsTitle")}</h2>
+              <button className="modal-close" onClick={() => setShowSettings(false)}>
+                &times;
+              </button>
+            </div>
+            <form onSubmit={handleSaveSettings}>
+              <div className="modal-body">
+                {/* Language selection */}
+                <div className="form-group">
+                  <label className="form-label">{t("settingsLang")}</label>
+                  <select
+                    className="form-select"
+                    value={lang}
+                    onChange={(e) => {
+                      const val = e.target.value as any;
+                      setLang(val);
+                      localStorage.setItem("fitme_lang", val);
+                    }}
+                  >
+                    <option value="en">English 🇬🇧</option>
+                    <option value="zh">简体中文 🇨🇳</option>
+                    <option value="ja">日本語 🇯🇵</option>
+                  </select>
+                </div>
+
+                {/* Profile Edit fields */}
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">{t("onboardSex")}</label>
+                    <select
+                      className="form-select"
+                      value={settingsSex}
+                      onChange={(e) => setSettingsSex(e.target.value)}
+                    >
+                      <option value="male">{t("onboardMale")} ♂</option>
+                      <option value="female">{t("onboardFemale")} ♀</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">{t("onboardAge")}</label>
+                    <input
+                      type="number"
+                      required
+                      min="1"
+                      max="120"
+                      className="form-input"
+                      value={settingsAge}
+                      onChange={(e) => setSettingsAge(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-row">
+                  <div className="form-group">
+                    <label className="form-label">{t("onboardHeight")}</label>
+                    <input
+                      type="number"
+                      required
+                      min="50"
+                      max="250"
+                      className="form-input"
+                      value={settingsAge === "" ? "" : settingsHeight}
+                      onChange={(e) => setSettingsHeight(e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">{t("onboardTarget")}</label>
+                    <input
+                      type="number"
+                      min="10"
+                      max="300"
+                      className="form-input"
+                      placeholder={t("onboardTargetPlaceholder")}
+                      value={settingsTargetWeight}
+                      onChange={(e) => setSettingsTargetWeight(e.target.value)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setShowSettings(false)}
+                  disabled={isVitalsSaving}
+                >
+                  {t("settingsClose")}
+                </button>
+                <button type="submit" className="btn btn-primary" disabled={isVitalsSaving}>
+                  {isVitalsSaving ? t("fastSaving") : t("settingsSaveProfile")}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
