@@ -1321,7 +1321,7 @@ export default function FitMeDashboard() {
           <div className="panel-inner" style={{ marginBottom: "14px" }}>
             <p className="section-title">今日记录总览</p>
           </div>
-          <div className="hero-grid" id="metricGrid" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "16px" }}>
+          <div className="hero-grid" id="metricGrid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
             <div className="metric">
               <span className="metric-label">今日摄入</span>
               <span className="metric-value">{fmt(latest.intakeKcal)} kcal</span>
@@ -1334,13 +1334,6 @@ export default function FitMeDashboard() {
               <span className="metric-value">{fmt(todayProtein)} g</span>
               <span className="metric-note">
                 每日目标 {data.targets.proteinCompletionTargetG} g
-              </span>
-            </div>
-            <div className="metric">
-              <span className="metric-label">今日累计断食</span>
-              <span className="metric-value">{fmt(latest.fastingDurationHours || 0)} 小时</span>
-              <span className="metric-note">
-                今日已完成断食计时时长
               </span>
             </div>
           </div>
