@@ -446,7 +446,7 @@ export default function FitMeDashboard() {
 
     if (last10Days.length === 0) {
       return (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "#8fae9f" }}>
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
           <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>📊 暂无历史趋势数据</p>
           <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>开始记录断食与餐食后，图表将自动生成。</p>
         </div>
@@ -488,16 +488,16 @@ export default function FitMeDashboard() {
             const y = getY(h);
             return (
               <g key={h}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.4)" fontSize={9}>{h}h</text>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{h}h</text>
               </g>
             );
           })}
 
           {maxVal >= 16 && (
             <g>
-              <line x1={padLeft} y1={targetY} x2={width - padRight} y2={targetY} stroke="rgba(255, 139, 119, 0.4)" strokeWidth={1.5} strokeDasharray="3 3" />
-              <text x={width - padRight - 5} y={targetY - 5} textAnchor="end" fill="rgba(255, 139, 119, 0.8)" fontSize={8} fontWeight="bold">16h 断食目标线</text>
+              <line x1={padLeft} y1={targetY} x2={width - padRight} y2={targetY} stroke="rgba(217, 83, 79, 0.4)" strokeWidth={1.5} strokeDasharray="3 3" />
+              <text x={width - padRight - 5} y={targetY - 5} textAnchor="end" fill="rgba(217, 83, 79, 0.9)" fontSize={8} fontWeight="bold">16h 断食目标线</text>
             </g>
           )}
 
@@ -520,11 +520,11 @@ export default function FitMeDashboard() {
                   />
                 )}
                 {val > 0 && (
-                  <text x={x} y={y - 6} textAnchor="middle" fill="#ffffff" fontSize={8} fontWeight="600">
+                  <text x={x} y={y - 6} textAnchor="middle" fill="var(--ink)" fontSize={8} fontWeight="700">
                     {val.toFixed(1)}h
                   </text>
                 )}
-                <text x={x} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={9}>
+                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
                   {d.label}
                 </text>
               </g>
@@ -560,8 +560,8 @@ export default function FitMeDashboard() {
             const y = getY(c);
             return (
               <g key={c}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.4)" fontSize={9}>{c}</text>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{c}</text>
               </g>
             );
           })}
@@ -577,15 +577,15 @@ export default function FitMeDashboard() {
             return (
               <g key={d.date}>
                 <circle cx={x} cy={y} r={3.5} fill="#ffffff" stroke="#2d8f63" strokeWidth={2} />
-                <text x={x} y={y - 8} textAnchor="middle" fill="#ffffff" fontSize={8} fontWeight="600">
+                <text x={x} y={y - 8} textAnchor="middle" fill="var(--ink)" fontSize={8} fontWeight="700">
                   {d.intakeKcal}
                 </text>
                 {prot > 0 && (
-                  <text x={x} y={cHeight + padTop - 6} textAnchor="middle" fill="#8fae9f" fontSize={8} fontWeight="bold">
+                  <text x={x} y={cHeight + padTop - 6} textAnchor="middle" fill="#2d8f63" fontSize={8} fontWeight="bold">
                     {Math.round(prot)}g
                   </text>
                 )}
-                <text x={x} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={9}>
+                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
                   {d.label}
                 </text>
               </g>
@@ -612,8 +612,8 @@ export default function FitMeDashboard() {
             const y = getY(b);
             return (
               <g key={b}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="rgba(255,255,255,0.4)" fontSize={9}>{b}次</text>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{b}次</text>
               </g>
             );
           })}
@@ -629,8 +629,8 @@ export default function FitMeDashboard() {
                 y={padTop}
                 width={step - 2}
                 height={cHeight}
-                fill="rgba(255, 139, 119, 0.09)"
-                stroke="rgba(255, 139, 119, 0.25)"
+                fill="rgba(255, 139, 119, 0.12)"
+                stroke="rgba(255, 139, 119, 0.35)"
                 strokeWidth={1}
                 strokeDasharray="2 2"
                 rx={4}
@@ -657,7 +657,7 @@ export default function FitMeDashboard() {
                   />
                 )}
                 {val > 0 && (
-                  <text x={x} y={y - 6} textAnchor="middle" fill="#cfa17b" fontSize={8} fontWeight="bold">
+                  <text x={x} y={y - 6} textAnchor="middle" fill="#8d5b4c" fontSize={8} fontWeight="bold">
                     💩 {val}
                   </text>
                 )}
@@ -666,7 +666,7 @@ export default function FitMeDashboard() {
                     🌸
                   </text>
                 )}
-                <text x={x} y={height - 8} textAnchor="middle" fill="rgba(255,255,255,0.5)" fontSize={9}>
+                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
                   {d.label}
                 </text>
               </g>
