@@ -44,6 +44,7 @@ interface DayLog {
   fastingDurationHours?: number;
   period?: PeriodLog | null;
   bowelMovements?: BowelMovementLog[];
+  weightKg?: number;
 }
 
 interface Profile {
@@ -139,9 +140,10 @@ export default function FitMeDashboard() {
   const [fastingElapsed, setFastingElapsed] = useState("");
   const [isFastingSaving, setIsFastingSaving] = useState(false);
 
-  // Active chart tab (fasting | period | bowel)
-  const [activeChartTab, setActiveChartTab] = useState<"fasting" | "period" | "bowel">("fasting");
+  // Active chart tab (fasting | period | bowel | weight)
+  const [activeChartTab, setActiveChartTab] = useState<"fasting" | "period" | "bowel" | "weight">("fasting");
   const [isVitalsSaving, setIsVitalsSaving] = useState(false);
+  const [weightInput, setWeightInput] = useState("");
 
   // Form Fields
   const [formDate, setFormDate] = useState("");
@@ -278,13 +280,6 @@ export default function FitMeDashboard() {
       if (!res.ok) throw new Error(await res.text());
       
       setData(updatedData);
-      
-      // 极度连贯的 UX: 自动呼出记录破酮餐界面
-      setFormType("breakfast"); 
-      setFormTitle("");
-      setFormKcal("");
-      setFormProtein("");
-      setShowModal(true);
     } catch (e: any) {
       alert("结束断食失败: " + e.message);
     } finally {
@@ -433,6 +428,58 @@ export default function FitMeDashboard() {
       setData(updatedData);
     } catch (e: any) {
       alert("删除排便记录失败: " + e.message);
+    } finally {
+      setIsVitalsSaving(false);
+    }
+  };
+
+  const handleSaveWeight = async (dateStr: string, weight: number) => {
+    if (!data) return;
+    setIsVitalsSaving(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const days = [...(data.days || [])];
+      let dayLog = days.find(d => d.date === dateStr);
+      
+      if (!dayLog) {
+        dayLog = {
+          date: dateStr,
+          label: dateStr.slice(5).replace("-", "/"),
+          intakeKcal: 0,
+          intakeRangeKcal: [0, 0],
+          proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动",
+          exerciseKcal: 0,
+          deficitKcal: 0,
+          note: "",
+          meals: [],
+          weightKg: weight
+        };
+        days.push(dayLog);
+      } else {
+        dayLog.weightKg = weight;
+      }
+      
+      const updatedProfile = {
+        ...data.profile,
+        latestWeightKg: weight
+      };
+      
+      const updatedData: FitMeData = {
+        ...data,
+        profile: updatedProfile,
+        days
+      };
+      
+      const res = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      setData(updatedData);
+    } catch (e: any) {
+      alert("保存体重失败: " + e.message);
     } finally {
       setIsVitalsSaving(false);
     }
@@ -642,6 +689,85 @@ export default function FitMeDashboard() {
                   <text x={x} y={y - 6} textAnchor="middle" fill="#8d5b4c" fontSize={8} fontWeight="bold">
                     💩 {val}
                   </text>
+                )}
+                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
+                  {d.label}
+                </text>
+              </g>
+            );
+          })}
+        </svg>
+      );
+    }
+
+    if (activeChartTab === "weight") {
+      const weightDays = last10Days.filter(d => d.weightKg && d.weightKg > 0);
+      
+      if (weightDays.length === 0) {
+        return (
+          <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
+            <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>📊 暂无体重变化数据</p>
+            <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>在上方“今日体重记录”中保存后，这里将显示趋势。</p>
+          </div>
+        );
+      }
+      
+      const weights = weightDays.map(d => d.weightKg!);
+      const minWeight = Math.min(...weights) - 1;
+      const maxWeight = Math.max(...weights) + 1;
+      const weightRange = maxWeight - minWeight || 2;
+      
+      const getY = (val: number) => cHeight + padTop - ((val - minWeight) / weightRange) * cHeight;
+      
+      const points = last10Days
+        .map((d, idx) => ({ d, idx, val: d.weightKg }))
+        .filter(p => p.val && p.val > 0)
+        .map(p => ({ x: getX(p.idx), y: getY(p.val!) }));
+        
+      const pathD = points.length > 0
+        ? `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ")
+        : "";
+      const areaD = pathD 
+        ? `${pathD} L ${points[points.length - 1].x} ${cHeight + padTop} L ${points[0].x} ${cHeight + padTop} Z`
+        : "";
+        
+      return (
+        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+          <defs>
+            <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#41aa74" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#41aa74" stopOpacity={0.0} />
+            </linearGradient>
+          </defs>
+
+          {Array.from({ length: 5 }).map((_, idx) => {
+            const val = minWeight + (weightRange / 4) * idx;
+            const y = getY(val);
+            return (
+              <g key={idx}>
+                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
+                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{val.toFixed(1)}kg</text>
+              </g>
+            );
+          })}
+
+          {areaD && <path d={areaD} fill="url(#weightGrad)" />}
+          {pathD && <path d={pathD} fill="none" stroke="#41aa74" strokeWidth={2} />}
+
+          {last10Days.map((d, idx) => {
+            const val = d.weightKg;
+            const x = getX(idx);
+            const y = val ? getY(val) : 0;
+            
+            return (
+              <g key={d.date}>
+                {val && val > 0 && (
+                  <g>
+                    <circle cx={x} cy={y} r={3.5} fill="#ffffff" stroke="#41aa74" strokeWidth={2} />
+                    <text x={x} y={y - 8} textAnchor="middle" fill="var(--ink)" fontSize={8} fontWeight="700">
+                      {val.toFixed(1)}kg
+                    </text>
+                  </g>
                 )}
                 <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
                   {d.label}
@@ -1287,7 +1413,7 @@ export default function FitMeDashboard() {
           </p>
           <h1 id="pageTitle">{safeCopy.title}</h1>
           <p className="subcopy">
-            专注断食与饮食的健康追踪管理，支持经期与每日排便状况记录。
+            专注断食时间、每日体重、经期生理和排便状况的健康追踪管理。
           </p>
         </div>
         <div className="status-pill" id="statusPill">
@@ -1311,7 +1437,7 @@ export default function FitMeDashboard() {
           onClick={data?.fastingState?.startTime ? handleEndFast : handleStartFast}
           disabled={isFastingSaving}
         >
-          {isFastingSaving ? "保存中..." : (data?.fastingState?.startTime ? "结束并进食" : "开始断食")}
+          {isFastingSaving ? "保存中..." : (data?.fastingState?.startTime ? "结束断食" : "开始断食")}
         </button>
       </section>
 
@@ -1323,17 +1449,17 @@ export default function FitMeDashboard() {
           </div>
           <div className="hero-grid" id="metricGrid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
             <div className="metric">
-              <span className="metric-label">今日摄入</span>
-              <span className="metric-value">{fmt(latest.intakeKcal)} kcal</span>
+              <span className="metric-label">今日累计断食</span>
+              <span className="metric-value">{fmt(latest.fastingDurationHours || 0)} 小时</span>
               <span className="metric-note">
-                今日推荐 {data.targets.dailyKcalRange[0]}-{data.targets.dailyKcalRange[1]} kcal
+                今日已完成断食计时时长
               </span>
             </div>
             <div className="metric">
-              <span className="metric-label">蛋白质补充</span>
-              <span className="metric-value">{fmt(todayProtein)} g</span>
+              <span className="metric-label">今日体重记录</span>
+              <span className="metric-value">{latest.weightKg ? `${latest.weightKg} kg` : `${data.profile.latestWeightKg} kg`}</span>
               <span className="metric-note">
-                每日目标 {data.targets.proteinCompletionTargetG} g
+                {latest.weightKg ? "今日已称重记录" : "使用最近一次体重数据"}
               </span>
             </div>
           </div>
@@ -1341,7 +1467,7 @@ export default function FitMeDashboard() {
       </section>
 
       {/* 4. Vitals Tracker Cards (Period & Bowels) */}
-      <section className="section" style={{ gridTemplateColumns: "1fr 1fr", gap: "24px", margin: "0 24px 24px" }}>
+      <section className="section" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", margin: "0 24px 24px" }}>
         {/* Period Card */}
         <div className={`panel vitals-card period-card ${latest.period ? "active-period" : ""}`} style={{ margin: 0 }}>
           <div className="panel-inner">
@@ -1434,6 +1560,63 @@ export default function FitMeDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Weight Card */}
+        <div className="panel vitals-card weight-card" style={{ margin: 0 }}>
+          <div className="panel-inner">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <p className="section-title" style={{ margin: 0 }}>⚖️ 今日体重记录</p>
+              <div style={{ display: "flex", gap: "6px" }}>
+                <input
+                  type="number"
+                  step="0.1"
+                  placeholder={latest.weightKg ? latest.weightKg.toString() : (data?.profile?.latestWeightKg ? data.profile.latestWeightKg.toString() : "0.0")}
+                  style={{ width: "65px", padding: "4px 8px", fontSize: "12px", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "none", borderRadius: "6px", textAlign: "center" }}
+                  value={weightInput}
+                  onChange={(e) => setWeightInput(e.target.value)}
+                  disabled={isVitalsSaving}
+                />
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ padding: "4px 10px", fontSize: "12px" }}
+                  onClick={() => {
+                    const w = parseFloat(weightInput);
+                    if (!isNaN(w) && w > 0) {
+                      handleSaveWeight(latest.date, w);
+                      setWeightInput("");
+                    } else {
+                      alert("请输入有效的体重数字（如 65.4）");
+                    }
+                  }}
+                  disabled={isVitalsSaving}
+                >
+                  保存
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginTop: "16px" }}>
+              {latest.weightKg ? (
+                <div>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
+                    {latest.weightKg} kg
+                  </h3>
+                  <span style={{ fontSize: "12px", opacity: 0.8 }}>
+                    今日已记录体重
+                  </span>
+                </div>
+              ) : (
+                <div>
+                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>未记录</h3>
+                  <span style={{ fontSize: "12px", opacity: 0.6 }}>
+                    最近体重: {data?.profile?.latestWeightKg ? `${data.profile.latestWeightKg} kg` : "无"}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </section>
 
       {/* 5. 3-Tab Statistical Chart Section */}
@@ -1464,6 +1647,13 @@ export default function FitMeDashboard() {
                 >
                   💩 排便趋势
                 </button>
+                <button
+                  type="button"
+                  className={`meal-filter ${activeChartTab === "weight" ? "is-active" : ""}`}
+                  onClick={() => setActiveChartTab("weight")}
+                >
+                  ⚖️ 体重趋势
+                </button>
               </div>
             </div>
             <div style={{ minHeight: "220px", display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -1472,151 +1662,6 @@ export default function FitMeDashboard() {
           </div>
         </div>
       </section>
-
-
-      {/* 7. Floating Add Button */}
-      <button className="floating-add-btn" onClick={() => setShowModal(true)}>
-        +
-      </button>
-
-      {/* 8. Add Record Dialog/Modal */}
-      {showModal && (
-        <div className="modal-overlay">
-          <div className="modal-card">
-            <div className="modal-header">
-              <h2 className="modal-title">记录一笔饮食</h2>
-              <button className="modal-close" onClick={() => setShowModal(false)}>
-                &times;
-              </button>
-            </div>
-            <form onSubmit={handleSave}>
-              <div className="modal-body">
-                {/* Date */}
-                <div className="form-group">
-                  <label className="form-label">日期</label>
-                  <input
-                    type="date"
-                    required
-                    className="form-input"
-                    value={formDate}
-                    onChange={e => setFormDate(e.target.value)}
-                  />
-                </div>
-
-                {/* Type & Title */}
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">记录类型</label>
-                    <select
-                      className="form-select"
-                      value={formType}
-                      onChange={e => setFormType(e.target.value)}
-                    >
-                      <option value="breakfast">早餐 🍳</option>
-                      <option value="lunch">午餐 🍱</option>
-                      <option value="dinner">晚餐 🥩</option>
-                      <option value="snack">加餐/饮品 ☕</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">餐食名称</label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g., 煎鸡胸肉沙拉"
-                      className="form-input"
-                      value={formTitle}
-                      onChange={e => setFormTitle(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* kcal & protein */}
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">热量 (kcal)</label>
-                    <input
-                      type="number"
-                      required
-                      min="0"
-                      placeholder="e.g., 350"
-                      className="form-input"
-                      value={formKcal}
-                      onChange={e => setFormKcal(e.target.value)}
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label className="form-label">蛋白质 (g, 可选)</label>
-                    <input
-                      type="number"
-                      min="0"
-                      placeholder="e.g., 28"
-                      className="form-input"
-                      value={formProtein}
-                      onChange={e => setFormProtein(e.target.value)}
-                    />
-                  </div>
-                </div>
-
-                {/* Description */}
-                <div className="form-group">
-                  <label className="form-label">简要备注</label>
-                  <textarea
-                    rows={2}
-                    placeholder="e.g., 加了半个牛油果，无糖酱汁"
-                    className="form-textarea"
-                    value={formDescription}
-                    onChange={e => setFormDescription(e.target.value)}
-                  />
-                </div>
-
-                {/* Image upload */}
-                <div className="form-group">
-                  <label className="form-label">上传餐食实拍</label>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    ref={fileInputRef}
-                    style={{ display: "none" }}
-                    onChange={handleImageChange}
-                  />
-                  {!imagePreview ? (
-                    <div className="upload-zone" onClick={() => fileInputRef.current?.click()}>
-                      <span>📷 点击拍照或上传照片</span>
-                      <span className="upload-zone-text">大小支持 8MB 以内</span>
-                    </div>
-                  ) : (
-                    <div className="upload-zone" style={{ flexDirection: "row", justifyContent: "space-between" }}>
-                      <div className="upload-preview-container">
-                        <img className="upload-preview" src={imagePreview} alt="Preview" />
-                        <div className="upload-remove" onClick={removeSelectedImage}>
-                          &times;
-                        </div>
-                      </div>
-                      <span className="upload-zone-text" style={{ alignSelf: "center" }}>
-                        照片选择成功
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowModal(false)}
-                  disabled={submitting}
-                >
-                  取消
-                </button>
-                <button type="submit" className="btn btn-primary" disabled={submitting}>
-                  {submitting ? "正在保存..." : "完成记录"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </main>
   );
 }
