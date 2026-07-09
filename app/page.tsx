@@ -134,8 +134,8 @@ const translations = {
     topTitle: "FitMe Dashboard",
     topEyebrow: "Today: {date}",
     topSubcopy: "Track fasting, weight, period, and bowel movements in one clean view.",
-    weightPill: "Weight: {W}kg",
-    goalPill: "Goal: {G}kg",
+    weightLabel: "WEIGHT",
+    goalLabel: "GOAL",
     fastActive: "🔥 Fasting Active",
     fastIdle: "⏸️ Not Fasting",
     fastElapsed: "Elapsed Time",
@@ -212,8 +212,8 @@ const translations = {
     topTitle: "FitMe 健康看板",
     topEyebrow: "今日：{date}",
     topSubcopy: "专注断食时间、每日体重、经期生理和排便状况的健康追踪管理。",
-    weightPill: "当前: {W}kg",
-    goalPill: "目标: {G}kg",
+    weightLabel: "当前体重",
+    goalLabel: "目标体重",
     fastActive: "🔥 断食燃烧中",
     fastIdle: "⏸️ 尚未断食",
     fastElapsed: "已断食时长",
@@ -290,8 +290,8 @@ const translations = {
     topTitle: "FitMe ダッシュボード",
     topEyebrow: "本日：{date}",
     topSubcopy: "断食时间、体重、生理周期、便通の健康管理ダッシュボード。",
-    weightPill: "現在: {W}kg",
-    goalPill: "目標: {G}kg",
+    weightLabel: "現在",
+    goalLabel: "目標",
     fastActive: "🔥 断食実行中",
     fastIdle: "⏸️ 断食していません",
     fastElapsed: "経過時間",
@@ -1796,9 +1796,14 @@ export default function FitMeDashboard() {
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <div className="dial-cutout ui-text" style={{ padding: "6px 10px", fontSize: "9px", background: "#eae7df", fontWeight: "bold", border: "1px solid rgba(26,26,24,0.15)", display: "flex", flexDirection: "column", gap: "2px", alignItems: "flex-start" }}>
-              <div>{t("weightPill", { W: data.profile.latestWeightKg.toFixed(2) })}</div>
-              <div style={{ color: "var(--sk-mech)" }}>{t("goalPill", { G: targetWeightLabel })}</div>
+            <div className="dial-cutout ui-text" style={{ padding: "6px 10px", fontSize: "10px", background: "#eae7df", fontWeight: "bold", border: "1px solid rgba(26,26,24,0.15)", display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px", alignItems: "center" }}>
+              <div style={{ textAlign: "right", letterSpacing: "1px" }}>{t("weightLabel")}</div>
+              <div>:</div>
+              <div style={{ textAlign: "left" }}>{data.profile.latestWeightKg.toFixed(2)}KG</div>
+              
+              <div style={{ textAlign: "right", letterSpacing: "1px", color: "var(--sk-mech)" }}>{t("goalLabel")}</div>
+              <div style={{ color: "var(--sk-mech)" }}>:</div>
+              <div style={{ textAlign: "left", color: "var(--sk-mech)" }}>{targetWeightLabel}KG</div>
             </div>
             <button
               type="button"

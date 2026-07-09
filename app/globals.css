@@ -20,6 +20,7 @@
   --surface: #F4F1EB;
   --ink: #1A1A18;
   --radius: 4px;
+  --ease-glass: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 * {
