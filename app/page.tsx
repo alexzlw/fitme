@@ -48,6 +48,7 @@ interface DayLog {
   hungerAttacks?: {
     succeeded: number;
     failed: number;
+    events?: Array<{ timestamp: string; succeeded: boolean }>;
   };
 }
 
@@ -184,10 +185,12 @@ const translations = {
     weightNoteInactive: "Latest weight: {X} kg",
     weightNotRecorded: "Not Recorded",
     chartTitle: "Data Analysis & Trends",
-    chartFasting: "⏳ Fasting",
-    chartPeriod: "🌸 Period",
-    chartBowel: "💩 Bowels",
-    chartWeight: "⚖️ Weight",
+    chartFasting: "Fasting",
+    chartPeriod: "Period",
+    chartBowel: "Bowel",
+    chartWeight: "Weight",
+    chartWillpower: "Willpower",
+    hungerLatest: "Latest",
     chartEmpty: "📊 No trend data available",
     chartEmptyNote: "Record your stats to generate trends.",
     chartFastingTarget: "16h Fasting Target",
@@ -246,7 +249,7 @@ const translations = {
     sumWeight: "今日体重记录",
     sumWeightNoteActive: "今日已称重记录",
     sumWeightNoteInactive: "使用最近一次体重数据",
-    periodTitle: "🌸 经期记录",
+    periodTitle: "生理期追踪",
     periodSwitchNone: "非经期 ⏸️",
     periodSwitchLight: "经期：流量偏少 🌸",
     periodSwitchMedium: "经期：流量中等 🌸🌸",
@@ -269,10 +272,12 @@ const translations = {
     weightNoteInactive: "最近体重: {X} kg",
     weightNotRecorded: "未记录",
     chartTitle: "数据分析统计",
-    chartFasting: "⏳ 断食趋势",
-    chartPeriod: "🌸 经期趋势",
-    chartBowel: "💩 排便趋势",
-    chartWeight: "⚖️ 体重趋势",
+    chartFasting: "断食",
+    chartPeriod: "生理期",
+    chartBowel: "排便",
+    chartWeight: "体重",
+    chartWillpower: "意志力",
+    hungerLatest: "最近一次",
     chartEmpty: "📊 暂无历史趋势数据",
     chartEmptyNote: "开始记录断食与生理体征后，图表将自动生成。",
     chartFastingTarget: "16h 断食目标线",
@@ -331,7 +336,7 @@ const translations = {
     sumWeight: "本日の体重",
     sumWeightNoteActive: "本日記録済み",
     sumWeightNoteInactive: "前回のデータを使用",
-    periodTitle: "🌸 生理周期",
+    periodTitle: "生理周期トラッカー",
     periodSwitchNone: "生理期間外 ⏸️",
     periodSwitchLight: "生理：経血量少なめ 🌸",
     periodSwitchMedium: "生理：経血量ふつう 🌸🌸",
@@ -354,10 +359,12 @@ const translations = {
     weightNoteInactive: "前回の体重: {X} kg",
     weightNotRecorded: "未記録",
     chartTitle: "データ分析推移",
-    chartFasting: "⏳ 断食推移",
-    chartPeriod: "🌸 生理推移",
-    chartBowel: "💩 便通推移",
-    chartWeight: "⚖️ 体重推移",
+    chartFasting: "断食",
+    chartPeriod: "生理",
+    chartBowel: "排便",
+    chartWeight: "体重",
+    chartWillpower: "意志力",
+    hungerLatest: "最新",
     chartEmpty: "📊 履歴データがありません",
     chartEmptyNote: "断食や体重の记录を開始すると、グラフが自動生成されます。",
     chartFastingTarget: "16h 断食目標線",
@@ -405,7 +412,7 @@ export default function FitMeDashboard() {
   const [isFastingSaving, setIsFastingSaving] = useState(false);
 
   // Active chart tab (fasting | period | bowel | weight)
-  const [activeChartTab, setActiveChartTab] = useState<"fasting" | "period" | "bowel" | "weight">("fasting");
+  const [activeChartTab, setActiveChartTab] = useState<"fasting" | "period" | "bowel" | "weight" | "willpower">("fasting");
   const [isVitalsSaving, setIsVitalsSaving] = useState(false);
   const [weightInput, setWeightInput] = useState("");
 
@@ -607,7 +614,10 @@ export default function FitMeDashboard() {
       }
       
       if (!todayLog.hungerAttacks) {
-        todayLog.hungerAttacks = { succeeded: 0, failed: 0 };
+        todayLog.hungerAttacks = { succeeded: 0, failed: 0, events: [] };
+      }
+      if (!todayLog.hungerAttacks.events) {
+        todayLog.hungerAttacks.events = [];
       }
       
       if (succeeded) {
@@ -615,6 +625,11 @@ export default function FitMeDashboard() {
       } else {
         todayLog.hungerAttacks.failed += 1;
       }
+      
+      todayLog.hungerAttacks.events.push({
+        timestamp: new Date().toISOString(),
+        succeeded
+      });
       
       let updatedData: FitMeData = { ...data, days };
       
@@ -1187,6 +1202,119 @@ export default function FitMeDashboard() {
               );
             })}
           </svg>
+        </div>
+      );
+    }
+
+    if (activeChartTab === "willpower") {
+      const last30Days = data?.days?.slice(-30) || [];
+      const hourCounts = new Array(24).fill(0);
+      last30Days.forEach(d => {
+        if (d.hungerAttacks?.events) {
+          d.hungerAttacks.events.forEach(e => {
+            const hour = new Date(e.timestamp).getHours();
+            hourCounts[hour]++;
+          });
+        }
+      });
+      const maxHeat = Math.max(...hourCounts, 1);
+
+      const last7Days = data?.days?.slice(-7) || [];
+      while (last7Days.length < 7) {
+        last7Days.unshift({ date: `empty-${last7Days.length}`, label: "", intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0], exerciseLabel: "", exerciseKcal: 0, deficitKcal: 0, note: "", meals: [] });
+      }
+
+      const width = 300;
+      const height = 120;
+      const padTop = 20;
+      const padBottom = 20;
+      const padLeft = 30;
+      const padRight = 20;
+      
+      const xStep7 = last7Days.length > 1 ? (width - padLeft - padRight) / (last7Days.length - 1) : 0;
+      const getX7 = (index: number) => padLeft + index * xStep7;
+      
+      const maxAttacks = Math.max(...last7Days.map(d => (d.hungerAttacks?.succeeded || 0) + (d.hungerAttacks?.failed || 0)), 4);
+      const getY7 = (val: number) => {
+        if (maxAttacks === 0) return height - padBottom;
+        return height - padBottom - (val / maxAttacks) * (height - padTop - padBottom);
+      };
+
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%" }}>
+          <div>
+            <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--sk-mech)", letterSpacing: "1px", marginBottom: "8px", textTransform: "uppercase" }}>24H Hunger Frequency</div>
+            <div style={{ position: "relative", width: "100%", height: `${height}px` }}>
+              <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+                <line x1={padLeft} y1={padTop} x2={width - padRight} y2={padTop} stroke="rgba(26,26,24,0.08)" strokeWidth={1} />
+                <line x1={padLeft} y1={height - padBottom} x2={width - padRight} y2={height - padBottom} stroke="rgba(26,26,24,0.08)" strokeWidth={1} />
+                <text x={padLeft - 8} y={padTop + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">High</text>
+                <text x={padLeft - 8} y={height - padBottom + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">Low</text>
+                
+                {[0, 6, 12, 18, 24].map(h => (
+                  <text key={h} x={padLeft + (h/24) * (width - padLeft - padRight)} y={height - 8} textAnchor="middle" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">
+                    {h.toString().padStart(2, '0')}
+                  </text>
+                ))}
+
+                <defs>
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2" result="blur" />
+                    <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+                  </filter>
+                </defs>
+
+                {hourCounts.map((count, hr) => {
+                  if (count === 0) return null;
+                  const x = padLeft + (hr/24) * (width - padLeft - padRight);
+                  const hBar = (count / maxHeat) * (height - padTop - padBottom);
+                  const yBar = height - padBottom - hBar;
+                  const isMax = count === maxHeat;
+                  return (
+                    <rect key={hr} x={x - 3} y={yBar} width={6} height={hBar} fill="var(--sk-oil)" rx={3} opacity={isMax ? 1 : 0.6} filter={isMax ? "url(#glow)" : ""} />
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
+          
+          <div>
+            <div style={{ fontSize: "10px", fontWeight: 700, color: "var(--sk-mech)", letterSpacing: "1px", marginBottom: "8px", textTransform: "uppercase" }}>Willpower Win-Rate (7 Days)</div>
+            <div style={{ position: "relative", width: "100%", height: `${height}px` }}>
+              <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none">
+                <line x1={padLeft} y1={padTop} x2={width - padRight} y2={padTop} stroke="rgba(26,26,24,0.08)" strokeWidth={1} />
+                <line x1={padLeft} y1={(padTop + (height - padBottom)) / 2} x2={width - padRight} y2={(padTop + (height - padBottom)) / 2} stroke="rgba(26,26,24,0.08)" strokeWidth={1} />
+                <line x1={padLeft} y1={height - padBottom} x2={width - padRight} y2={height - padBottom} stroke="rgba(26,26,24,0.08)" strokeWidth={1} />
+                
+                <text x={padLeft - 8} y={padTop + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">{maxAttacks}</text>
+                <text x={padLeft - 8} y={height - padBottom + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">0</text>
+                
+                {last7Days.map((d, idx) => {
+                  const total = (d.hungerAttacks?.succeeded || 0) + (d.hungerAttacks?.failed || 0);
+                  const success = d.hungerAttacks?.succeeded || 0;
+                  const x = getX7(idx);
+                  const yTotal = getY7(total);
+                  const hTotal = (height - padBottom) - yTotal;
+                  const ySuccess = getY7(success);
+                  const hSuccess = (height - padBottom) - ySuccess;
+
+                  return (
+                    <g key={d.date || `empty-${idx}`}>
+                      {total > 0 && (
+                        <rect x={x - 8} y={yTotal} width={16} height={hTotal} fill="none" stroke="var(--sk-mech)" strokeWidth={1.5} />
+                      )}
+                      {success > 0 && (
+                        <rect x={x - 6} y={ySuccess + (hTotal === hSuccess && hSuccess > 4 ? 2 : 0)} width={12} height={hTotal === hSuccess && hSuccess > 4 ? hSuccess - 4 : hSuccess} fill="var(--sk-oil)" />
+                      )}
+                      <text x={x} y={height - 8} textAnchor="middle" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-ui)">
+                        {d.label ? (d.label.split("/")[1] || d.label) : ""}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
+          </div>
         </div>
       );
     }
@@ -1976,6 +2104,11 @@ export default function FitMeDashboard() {
               <div className="data-text" style={{ fontSize: "14px", fontWeight: "bold", margin: "4px 0", color: "var(--sk-mech)" }}>
                 {t("hungerStatFormat", { S: latest.hungerAttacks?.succeeded || 0, F: latest.hungerAttacks?.failed || 0 })}
               </div>
+              {latest.hungerAttacks?.events && latest.hungerAttacks.events.length > 0 && (
+                <div style={{ fontSize: "11px", color: "#888", marginTop: "4px" }}>
+                  {t("hungerLatest")}: {new Date(latest.hungerAttacks.events[latest.hungerAttacks.events.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} ({latest.hungerAttacks.events[latest.hungerAttacks.events.length - 1].succeeded ? "胜" : "负"})
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -2140,6 +2273,12 @@ export default function FitMeDashboard() {
               onClick={() => setActiveChartTab("weight")}
             >
               {t("chartWeight")}
+            </div>
+            <div
+              className={`ink-segment ${activeChartTab === "willpower" ? "active" : ""}`}
+              onClick={() => setActiveChartTab("willpower")}
+            >
+              {t("chartWillpower")}
             </div>
           </div>
 
