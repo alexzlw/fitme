@@ -1787,27 +1787,28 @@ export default function FitMeDashboard() {
       <main className="canvas heavy-paper">
         {/* 2. Topbar Header */}
         <div className="header-plate" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
-          <div>
+          <div style={{ paddingBottom: "12px" }}>
             <h1 style={{ fontFamily: "var(--font-content)", fontSize: "26px", margin: 0, fontWeight: 600, color: "var(--sk-ink)", lineHeight: 1.1 }}>
-              <div style={{ fontSize: "0.85em", opacity: 0.9 }}>snono</div>
+              <div>snono</div>
               <div>{t("brandSub")}</div>
             </h1>
-            <p className="ui-text" style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#6e6b64" }}>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: "6px" }}>
+            <p className="ui-text" style={{ margin: 0, fontSize: "11px", color: "#6e6b64", letterSpacing: "0.5px", fontWeight: 600 }}>
               {t("topEyebrow", { date: latest.date })}
             </p>
-          </div>
-          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <div className="dial-cutout ui-text" style={{ padding: "6px 10px", fontSize: "10px", background: "#eae7df", fontWeight: "bold", border: "1px solid rgba(26,26,24,0.15)" }}>
-              <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px", alignItems: "center" }}>
-                <div style={{ textAlign: "right", letterSpacing: "1px" }}>{t("weightLabel")}</div>
-                <div>:</div>
-                <div style={{ textAlign: "left" }}>{data.profile.latestWeightKg.toFixed(2)}KG</div>
-                
-                <div style={{ textAlign: "right", letterSpacing: "1px", color: "var(--sk-mech)" }}>{t("goalLabel")}</div>
-                <div style={{ color: "var(--sk-mech)" }}>:</div>
-                <div style={{ textAlign: "left", color: "var(--sk-mech)" }}>{targetWeightLabel}KG</div>
+            <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+              <div className="dial-cutout ui-text" style={{ padding: "6px 10px", fontSize: "10px", background: "#eae7df", fontWeight: "bold", border: "1px solid rgba(26,26,24,0.15)" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "auto auto 1fr", gap: "2px 4px", alignItems: "center" }}>
+                  <div style={{ textAlign: "left", letterSpacing: "1px" }}>{t("weightLabel")}</div>
+                  <div>:</div>
+                  <div style={{ textAlign: "left" }}>{data.profile.latestWeightKg.toFixed(2)}KG</div>
+                  
+                  <div style={{ textAlign: "left", letterSpacing: "1px", color: "var(--sk-mech)" }}>{t("goalLabel")}</div>
+                  <div style={{ color: "var(--sk-mech)" }}>:</div>
+                  <div style={{ textAlign: "left", color: "var(--sk-mech)" }}>{targetWeightLabel}KG</div>
+                </div>
               </div>
-            </div>
             <button
               type="button"
               className="mech-btn-small"
@@ -1816,6 +1817,7 @@ export default function FitMeDashboard() {
             >
               ⚙️
             </button>
+            </div>
           </div>
         </div>
 
