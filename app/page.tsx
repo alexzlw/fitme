@@ -130,6 +130,7 @@ const translations = {
     onboardFemale: "Female",
     onboardSubmit: "Save & Generate Plan",
     onboardSaving: "Initializing...",
+    brandSub: "snono Body Log",
     topTitle: "FitMe Dashboard",
     topEyebrow: "Today: {date}",
     topSubcopy: "Track fasting, weight, period, and bowel movements in one clean view.",
@@ -206,6 +207,7 @@ const translations = {
     onboardFemale: "女",
     onboardSubmit: "生成我的健康计划",
     onboardSaving: "正在初始化...",
+    brandSub: "snono身体记录",
     topTitle: "FitMe 健康看板",
     topEyebrow: "今日：{date}",
     topSubcopy: "专注断食时间、每日体重、经期生理和排便状况的健康追踪管理。",
@@ -282,6 +284,7 @@ const translations = {
     onboardFemale: "女性",
     onboardSubmit: "プランを生成",
     onboardSaving: "初期化中...",
+    brandSub: "snono身体記録",
     topTitle: "FitMe ダッシュボード",
     topEyebrow: "本日：{date}",
     topSubcopy: "断食时间、体重、生理周期、便通の健康管理ダッシュボード。",
@@ -1053,7 +1056,7 @@ export default function FitMeDashboard() {
               return (
                 <g key={idx}>
                   <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(26, 26, 24, 0.08)" strokeWidth={1} />
-                  <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">{val.toFixed(1)}kg</text>
+                  <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">{val.toFixed(2)}kg</text>
                 </g>
               );
             })}
@@ -1080,7 +1083,7 @@ export default function FitMeDashboard() {
                         className={isLastPoint ? "oil-glow" : ""}
                       />
                       <text x={x} y={y - 8} textAnchor="middle" fill="var(--sk-ink)" fontSize={8} fontWeight="700" fontFamily="var(--font-mono)">
-                        {val.toFixed(1)}kg
+                        {val.toFixed(2)}kg
                       </text>
                     </g>
                   )}
@@ -1782,7 +1785,10 @@ export default function FitMeDashboard() {
         {/* 2. Topbar Header */}
         <div className="header-plate" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
           <div>
-            <h1 style={{ fontFamily: "var(--font-content)", fontSize: "24px", margin: 0, fontWeight: 600, color: "var(--sk-ink)" }}>{t("topTitle")}</h1>
+            <p className="ui-text" style={{ margin: 0, fontSize: "10px", color: "var(--sk-oil)", fontWeight: "bold" }}>
+              {t("brandSub")}
+            </p>
+            <h1 style={{ fontFamily: "var(--font-content)", fontSize: "22px", margin: "2px 0 0 0", fontWeight: 600, color: "var(--sk-ink)" }}>{t("topTitle")}</h1>
             <p className="ui-text" style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#6e6b64" }}>
               {t("topEyebrow", { date: latest.date })}
             </p>
@@ -1942,12 +1948,12 @@ export default function FitMeDashboard() {
             <div className="row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
                 <div className="dial-cutout data-text dial-value" style={{ fontSize: "22px" }}>
-                  {latest.weightKg ? latest.weightKg.toFixed(1) : (data?.profile?.latestWeightKg ? data.profile.latestWeightKg.toFixed(1) : "0.0")}
+                  {latest.weightKg ? latest.weightKg.toFixed(2) : (data?.profile?.latestWeightKg ? data.profile.latestWeightKg.toFixed(2) : "0.00")}
                 </div>
                 <input
                   type="number"
-                  step="0.1"
-                  placeholder="0.0"
+                  step="0.01"
+                  placeholder="0.00"
                   style={{ width: "65px", padding: "6px", fontSize: "12px", background: "#eae7df", color: "var(--sk-ink)", border: "1px solid rgba(26,26,24,0.15)", borderRadius: "4px", textAlign: "center" }}
                   value={weightInput}
                   onChange={(e) => setWeightInput(e.target.value)}
@@ -1956,8 +1962,7 @@ export default function FitMeDashboard() {
               </div>
               <button
                 type="button"
-                className="mech-btn-small"
-                style={{ width: "auto", borderRadius: "4px", padding: "0 12px", fontSize: "13px", fontFamily: "var(--font-ui)", fontWeight: "bold" }}
+                className="mech-btn"
                 onClick={() => {
                   const w = parseFloat(weightInput);
                   if (!isNaN(w) && w > 0) {

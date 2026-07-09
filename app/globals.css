@@ -1628,17 +1628,37 @@ h1 {
   position: relative !important;
   margin-bottom: 28px !important;
 }
-.header-plate::before, .header-plate::after {
-  content: '●' !important;
-  position: absolute !important;
-  top: 50% !important;
-  transform: translateY(-50%) !important;
-  color: #6b665c !important;
-  font-size: 8px !important;
-  text-shadow: 0 1px 0 rgba(255,255,255,0.6) !important;
+/* Rectangular Mechanical Button */
+.mech-btn {
+  padding: 6px 16px !important;
+  border-radius: 4px !important;
+  background: linear-gradient(to bottom, #5a5752, var(--sk-mech)) !important;
+  border: 1px solid #1c1a18 !important;
+  box-shadow: 
+    inset 0 1px 1px rgba(255,255,255,0.2),
+    0 3px 0 #2a2825,
+    0 4px 6px rgba(0,0,0,0.3) !important;
+  color: #fff !important;
+  font-family: var(--font-ui) !important;
+  font-size: 13px !important;
+  font-weight: bold !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.05s ease !important;
 }
-.header-plate::before { left: 12px !important; }
-.header-plate::after { right: 12px !important; }
+.mech-btn:active {
+  transform: translateY(3px) !important;
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.3),
+    0 0 0 #2a2825,
+    0 1px 2px rgba(0,0,0,0.3) !important;
+}
+.mech-btn:disabled {
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+}
 
 /* Mechanical Stopwatch / Timer Display */
 .mechanical-timer {
