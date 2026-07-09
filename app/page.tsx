@@ -45,6 +45,10 @@ interface DayLog {
   period?: PeriodLog | null;
   bowelMovements?: BowelMovementLog[];
   weightKg?: number;
+  hungerAttacks?: {
+    succeeded: number;
+    failed: number;
+  };
 }
 
 interface Profile {
@@ -143,6 +147,13 @@ const translations = {
     fastStart: "Start Fasting",
     fastEnd: "End Fasting",
     fastSaving: "Saving...",
+    hungerAttackBtn: "⚠️ Hunger Attack",
+    hungerTitle: "Hunger Attack!",
+    hungerDesc: "How did you handle the hunger just now?",
+    hungerResistSuccess: "✅ Resisted Successfully",
+    hungerResistFail: "❌ Failed (Ate Something)",
+    hungerStats: "Hunger Resistances",
+    hungerStatFormat: "Success: {S} | Fail: {F}",
     sumTitle: "Today's Summary",
     sumFasting: "Fasting Today",
     sumFastingUnit: "hours",
@@ -221,6 +232,13 @@ const translations = {
     fastStart: "开始断食",
     fastEnd: "结束断食",
     fastSaving: "保存中...",
+    hungerAttackBtn: "⚠️ 饥饿攻击",
+    hungerTitle: "遭遇饥饿攻击！",
+    hungerDesc: "你刚才成功抵御饥饿了吗？",
+    hungerResistSuccess: "✅ 抵抗成功",
+    hungerResistFail: "❌ 抵抗失败 (吃了东西)",
+    hungerStats: "饥饿抵抗战况",
+    hungerStatFormat: "成功: {S} | 失败: {F}",
     sumTitle: "今日记录总览",
     sumFasting: "今日累计断食",
     sumFastingUnit: "小时",
@@ -299,6 +317,13 @@ const translations = {
     fastStart: "断食開始",
     fastEnd: "断食終了",
     fastSaving: "保存中...",
+    hungerAttackBtn: "⚠️ 空腹感の襲来",
+    hungerTitle: "空腹感の襲来！",
+    hungerDesc: "空腹感を乗り越えられましたか？",
+    hungerResistSuccess: "✅ 耐え抜いた",
+    hungerResistFail: "❌ 負けた (食べてしまった)",
+    hungerStats: "空腹感との戦い",
+    hungerStatFormat: "成功: {S} | 失敗: {F}",
     sumTitle: "本日のサマリー",
     sumFasting: "本日の断食",
     sumFastingUnit: "時間",
@@ -364,6 +389,8 @@ export default function FitMeDashboard() {
   // Modal & Form States
   const [showModal, setShowModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [isHungerModalOpen, setIsHungerModalOpen] = useState(false);
+  const [isHungerSaving, setIsHungerSaving] = useState(false);
 
   // Onboarding setup state
   const [setupSex, setSetupSex] = useState("male");
@@ -549,6 +576,69 @@ export default function FitMeDashboard() {
       alert("结束断食失败: " + e.message);
     } finally {
       setIsFastingSaving(false);
+    }
+  };
+
+  const handleHungerResult = async (succeeded: boolean) => {
+    if (!data) return;
+    setIsHungerSaving(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const days = [...(data.days || [])];
+      let todayLog = days.find(d => d.date === todayStr);
+      
+      if (!todayLog) {
+        todayLog = {
+          date: todayStr,
+          label: todayStr.slice(5).replace("-", "/"),
+          intakeKcal: 0,
+          intakeRangeKcal: [0, 0],
+          proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动",
+          exerciseKcal: 0,
+          deficitKcal: Math.round(((data.profile.sedentaryMaintenanceKcalRange[0] + data.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
+          note: "",
+          meals: [],
+          fastingDurationHours: 0,
+          hungerAttacks: { succeeded: 0, failed: 0 }
+        };
+        days.push(todayLog);
+      }
+      
+      if (!todayLog.hungerAttacks) {
+        todayLog.hungerAttacks = { succeeded: 0, failed: 0 };
+      }
+      
+      if (succeeded) {
+        todayLog.hungerAttacks.succeeded += 1;
+      } else {
+        todayLog.hungerAttacks.failed += 1;
+      }
+      
+      let updatedData: FitMeData = { ...data, days };
+      
+      if (!succeeded && updatedData.fastingState?.startTime) {
+        const start = new Date(updatedData.fastingState.startTime).getTime();
+        const now = new Date().getTime();
+        const durationHours = Math.max(0, (now - start) / (1000 * 3600));
+        todayLog.fastingDurationHours = (todayLog.fastingDurationHours || 0) + durationHours;
+        updatedData.fastingState = { startTime: null };
+      }
+
+      const res = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      
+      setData(updatedData);
+      setIsHungerModalOpen(false);
+    } catch (e: any) {
+      alert("Error saving hunger result: " + e.message);
+    } finally {
+      setIsHungerSaving(false);
     }
   };
 
@@ -1836,6 +1926,26 @@ export default function FitMeDashboard() {
           >
             {isFastingSaving ? t("fastSaving") : (data?.fastingState?.startTime ? t("fastEnd") : t("fastStart"))}
           </button>
+
+          {data?.fastingState?.startTime && (
+            <button
+              onClick={() => setIsHungerModalOpen(true)}
+              className="mech-btn"
+              style={{
+                marginTop: "16px",
+                width: "100%",
+                background: "linear-gradient(to bottom, #b53838, #8a1f1f)",
+                color: "#f4f1eb",
+                border: "1px solid #4a0d0d",
+                boxShadow: "inset 0 1px 1px rgba(255,255,255,0.2), 0 3px 0 #3b0909, 0 4px 6px rgba(0,0,0,0.3)",
+                fontSize: "14px",
+                fontWeight: "bold",
+                letterSpacing: "1px"
+              }}
+            >
+              {t("hungerAttackBtn")}
+            </button>
+          )}
         </section>
 
         {/* 3. Today's Summary Card */}
@@ -1859,6 +1969,12 @@ export default function FitMeDashboard() {
               </div>
               <div style={{ fontSize: "12px", fontStyle: "italic", opacity: 0.7 }}>
                 {latest.weightKg ? t("sumWeightNoteActive") : t("sumWeightNoteInactive")}
+              </div>
+            </div>
+            <div style={{ gridColumn: "1 / -1", paddingTop: "12px", borderTop: "1px dashed rgba(26,26,24,0.15)", marginTop: "4px" }}>
+              <div className="ui-text" style={{ fontSize: "10px" }}>{t("hungerStats")}</div>
+              <div className="data-text" style={{ fontSize: "14px", fontWeight: "bold", margin: "4px 0", color: "var(--sk-mech)" }}>
+                {t("hungerStatFormat", { S: latest.hungerAttacks?.succeeded || 0, F: latest.hungerAttacks?.failed || 0 })}
               </div>
             </div>
           </div>
@@ -2140,6 +2256,49 @@ export default function FitMeDashboard() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Hunger Attack Modal */}
+      {isHungerModalOpen && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+          <div className="modal-content heavy-paper dark-glass-shell" style={{ width: "100%", maxWidth: "360px", background: "#F4F1EB", padding: "24px", borderRadius: "8px", border: "2px solid var(--sk-ink)", boxShadow: "0 12px 24px rgba(0,0,0,0.5)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid rgba(26,26,24,0.15)", paddingBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontFamily: "var(--font-content)", color: "var(--sk-ink)", fontSize: "20px", fontWeight: 600 }}>{t("hungerTitle")}</h3>
+              <button 
+                onClick={() => setIsHungerModalOpen(false)}
+                style={{ background: "transparent", border: "none", color: "var(--sk-ink)", fontSize: "20px", cursor: "pointer", opacity: 0.5 }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <p className="ui-text" style={{ color: "var(--sk-mech)", marginBottom: "24px", fontSize: "14px" }}>
+              {t("hungerDesc")}
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+              <button
+                type="button"
+                className="mech-btn"
+                style={{ width: "100%", padding: "14px", fontSize: "16px", background: "linear-gradient(to bottom, #4CAF50, #2E7D32)", color: "#fff", border: "1px solid #1B5E20", boxShadow: "inset 0 1px 1px rgba(255,255,255,0.3), 0 3px 0 #1B5E20, 0 4px 6px rgba(0,0,0,0.3)" }}
+                onClick={() => handleHungerResult(true)}
+                disabled={isHungerSaving}
+              >
+                {isHungerSaving ? t("fastSaving") : t("hungerResistSuccess")}
+              </button>
+              
+              <button
+                type="button"
+                className="mech-btn"
+                style={{ width: "100%", padding: "14px", fontSize: "16px", background: "linear-gradient(to bottom, #f44336, #c62828)", color: "#fff", border: "1px solid #8e0000", boxShadow: "inset 0 1px 1px rgba(255,255,255,0.3), 0 3px 0 #8e0000, 0 4px 6px rgba(0,0,0,0.3)" }}
+                onClick={() => handleHungerResult(false)}
+                disabled={isHungerSaving}
+              >
+                {isHungerSaving ? t("fastSaving") : t("hungerResistFail")}
+              </button>
+            </div>
           </div>
         </div>
       )}
