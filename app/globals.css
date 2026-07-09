@@ -1,23 +1,25 @@
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
 :root {
-  --bg: #eef7f3;
-  --surface: rgba(255, 255, 255, 0.62);
-  --surface-strong: rgba(255, 255, 255, 0.78);
-  --surface-soft: rgba(234, 249, 241, 0.58);
-  --ink: #15241d;
-  --muted: #526a5e;
-  --line: rgba(255, 255, 255, 0.62);
-  --line-ink: rgba(51, 103, 76, 0.16);
-  --green: #2d8f63;
-  --green-dark: #1f694d;
-  --mint: #e5f1eb;
-  --blue: #c8d4dc;
-  --yellow: #e7e2c9;
-  --red: #e47c67;
-  --glass-edge: rgba(255, 255, 255, 0.86);
-  --glass-shadow: 0 26px 78px rgba(31, 51, 42, 0.11), 0 1px 0 rgba(255, 255, 255, 0.96) inset, 0 -1px 0 rgba(31, 51, 42, 0.08) inset;
-  --inner-glow: inset 0 1px 0 rgba(255, 255, 255, 0.96), inset 0 -1px 0 rgba(31, 51, 42, 0.08);
-  --radius: 8px;
-  --ease-glass: cubic-bezier(.18, .86, .28, 1);
+  /* Color Palette */
+  --sk-paper: #F4F1EB; /* 纸基 */
+  --sk-ink: #1A1A18;   /* 墨迹 */
+  --sk-oil: #D98A2C;   /* 精油/高光 */
+  --sk-mech: #3E3C38;  /* 机械件 */
+
+  /* Typography */
+  --font-content: 'EB Garamond', 'Noto Serif SC', 'Source Han Serif', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-ui: 'Inter', sans-serif;
+
+  /* Spacing & Line Height */
+  --line-height-base: 1.6;
+
+  /* Legacy variables fallback to prevent crashes */
+  --bg: #111;
+  --surface: #F4F1EB;
+  --ink: #1A1A18;
+  --radius: 4px;
 }
 
 * {
@@ -27,42 +29,18 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(255, 255, 255, 0.95), transparent 20%),
-    radial-gradient(circle at 82% 14%, rgba(235, 239, 236, 0.72), transparent 25%),
-    radial-gradient(circle at 18% 78%, rgba(225, 235, 230, 0.52), transparent 30%),
-    linear-gradient(160deg, #fbfcfb 0%, #f1f5f3 50%, #fafaf7 100%);
-  color: var(--ink);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-color: #111;
+  background-image: radial-gradient(circle at 50% 0%, #222, #000);
+  color: var(--sk-ink);
+  font-family: var(--font-content);
+  line-height: var(--line-height-base);
   letter-spacing: 0;
   overflow-x: hidden;
 }
 
-body::before {
+body::before, body::after {
   content: "";
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, transparent 1px 18px),
-    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.08) 0 1px, transparent 1px 22px),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0));
-  mask-image: linear-gradient(180deg, black, transparent 76%);
-  opacity: 0.34;
-}
-
-body::after {
-  content: "";
-  position: fixed;
-  inset: -18%;
-  pointer-events: none;
-  background:
-    radial-gradient(closest-side at 28% 18%, rgba(255, 255, 255, 0.52), transparent 66%),
-    radial-gradient(closest-side at 72% 60%, rgba(222, 232, 226, 0.12), transparent 72%);
-  filter: blur(20px);
-  opacity: 0.38;
-  transform: translate3d(-4%, -3%, 0);
-  animation: ambientShift 14s var(--ease-glass) infinite alternate;
+  display: none;
 }
 
 .page {
@@ -1564,4 +1542,293 @@ h1 {
     grid-template-columns: 1fr !important;
   }
 }
+
+/* ========================================================
+   SKEUOMORPHIC UI REWRITE STYLES
+   ======================================================== */
+
+/* Heavyweight Paper Canvas */
+.heavy-paper {
+  background-color: var(--sk-paper) !important;
+  background-image: 
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E") !important;
+  box-shadow: 
+    0 20px 40px rgba(0,0,0,0.6),
+    inset 0 0 60px rgba(0,0,0,0.03) !important;
+  border: 1px solid rgba(0,0,0,0.05) !important;
+  border-radius: 4px !important;
+  color: var(--sk-ink) !important;
+  font-family: var(--font-content) !important;
+}
+
+/* Dark Glass Shell */
+.dark-glass-shell {
+  background: rgba(30, 30, 30, 0.9) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  box-shadow: 
+    0 30px 60px rgba(0,0,0,0.8),
+    inset 0 1px 1px rgba(255,255,255,0.1) !important;
+  border-radius: 16px !important;
+}
+
+/* High-Damping Mechanical Parts */
+.mech-part {
+  background-color: var(--sk-mech) !important;
+  background-image: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.2) 100%) !important;
+  border: 1px solid #2a2825 !important;
+  box-shadow: 
+    inset 0 1px 1px rgba(255,255,255,0.15),
+    0 4px 6px rgba(0,0,0,0.4),
+    0 1px 2px rgba(0,0,0,0.6) !important;
+}
+
+/* Amber / Oil Lights & Accents */
+.oil-accent {
+  color: var(--sk-oil) !important;
+  text-shadow: 0 0 8px rgba(217, 138, 44, 0.4) !important;
+}
+.oil-glow {
+  box-shadow: 0 0 12px rgba(217, 138, 44, 0.4) !important;
+}
+
+/* UI Shell Typography */
+.ui-text {
+  font-family: var(--font-ui) !important;
+  font-size: 11px !important;
+  letter-spacing: 1px !important;
+  text-transform: uppercase !important;
+  color: #6e6b64 !important;
+  font-weight: 600 !important;
+}
+
+/* Content Typography */
+.content-text {
+  font-family: var(--font-content) !important;
+  color: var(--sk-ink) !important;
+}
+
+/* Data/Code Typography */
+.data-text {
+  font-family: var(--font-mono) !important;
+  letter-spacing: -0.5px !important;
+}
+
+/* Header Engraved Plate */
+.header-plate {
+  background: linear-gradient(to bottom, #dcd8cf, #c2bdb2) !important;
+  border: 1px solid #9c978d !important;
+  border-radius: 4px !important;
+  padding: 14px !important;
+  text-align: center;
+  box-shadow: 
+    inset 0 1px 0 rgba(255,255,255,0.6),
+    0 2px 4px rgba(0,0,0,0.15) !important;
+  position: relative !important;
+  margin-bottom: 28px !important;
+}
+.header-plate::before, .header-plate::after {
+  content: '●' !important;
+  position: absolute !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  color: #6b665c !important;
+  font-size: 8px !important;
+  text-shadow: 0 1px 0 rgba(255,255,255,0.6) !important;
+}
+.header-plate::before { left: 12px !important; }
+.header-plate::after { right: 12px !important; }
+
+/* Mechanical Stopwatch / Timer Display */
+.mechanical-timer {
+  background: var(--sk-mech) !important;
+  border-radius: 8px !important;
+  padding: 24px !important;
+  margin-bottom: 32px !important;
+  border: 1px solid #1c1a18 !important;
+  box-shadow: 
+    inset 0 2px 2px rgba(255,255,255,0.1),
+    inset 0 -2px 4px rgba(0,0,0,0.5),
+    0 10px 20px rgba(0,0,0,0.4) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+}
+
+/* Amber Glass Display */
+.display-screen {
+  background-color: #161514 !important;
+  border: 2px solid #000 !important;
+  border-radius: 4px !important;
+  padding: 16px 32px !important;
+  box-shadow: inset 0 2px 10px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.05) !important;
+  color: var(--sk-oil) !important;
+  text-shadow: 0 0 12px rgba(217, 138, 44, 0.6) !important;
+  margin-bottom: 20px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  text-align: center !important;
+}
+
+/* Heavy Mechanical Switch */
+.heavy-switch {
+  width: 100% !important;
+  padding: 16px !important;
+  background: linear-gradient(to bottom, #4a4843, var(--sk-mech)) !important;
+  border: 1px solid #1a1a1a !important;
+  border-radius: 6px !important;
+  color: #f0f0f0 !important;
+  font-family: var(--font-ui) !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  letter-spacing: 2px !important;
+  box-shadow: 
+    inset 0 2px 2px rgba(255,255,255,0.15),
+    0 6px 0 #2a2825,
+    0 8px 10px rgba(0,0,0,0.5) !important;
+  cursor: pointer !important;
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  position: relative !important;
+}
+.heavy-switch:active {
+  transform: translateY(6px) !important;
+  box-shadow: 
+    inset 0 2px 2px rgba(0,0,0,0.2),
+    0 0 0 #2a2825,
+    0 2px 4px rgba(0,0,0,0.4) !important;
+}
+.heavy-switch:disabled {
+  opacity: 0.7 !important;
+  cursor: not-allowed !important;
+}
+.heavy-switch.active-state {
+  color: var(--sk-oil) !important;
+  text-shadow: 0 0 8px rgba(217, 138, 44, 0.4) !important;
+}
+
+/* Content Cards (Ink on Paper) */
+.ink-card {
+  border: 1px solid rgba(26, 26, 24, 0.16) !important;
+  padding: 20px !important;
+  margin-bottom: 24px !important;
+  position: relative !important;
+  background: transparent !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+.ink-card::before {
+  content: '' !important;
+  position: absolute !important;
+  top: -1px !important; left: -1px !important;
+  width: 8px !important; height: 8px !important;
+  border-top: 2px solid var(--sk-ink) !important;
+  border-left: 2px solid var(--sk-ink) !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+}
+
+.card-title {
+  font-size: 16px !important;
+  margin: 0 0 16px 0 !important;
+  font-weight: 600 !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: baseline !important;
+  border-bottom: 1px dotted rgba(26, 26, 24, 0.15) !important;
+  padding-bottom: 8px !important;
+  color: var(--sk-ink) !important;
+  font-family: var(--font-content) !important;
+}
+
+/* Mechanical Dials inside Paper (Cutout effect) */
+.dial-cutout {
+  background: #eae7df !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.12) !important;
+  border-radius: 4px !important;
+  padding: 8px 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  border: 1px solid rgba(255,255,255,0.4) !important;
+}
+.dial-value {
+  color: var(--sk-ink) !important;
+  font-weight: 700 !important;
+}
+
+/* Brass / Mech small button */
+.mech-btn-small {
+  width: 32px !important;
+  height: 32px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(to bottom, #5a5752, var(--sk-mech)) !important;
+  border: 1px solid #1c1a18 !important;
+  box-shadow: 
+    inset 0 1px 1px rgba(255,255,255,0.2),
+    0 3px 0 #2a2825,
+    0 4px 6px rgba(0,0,0,0.3) !important;
+  color: #fff !important;
+  font-family: var(--font-mono) !important;
+  font-size: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  transition: all 0.05s ease !important;
+}
+.mech-btn-small:active {
+  transform: translateY(3px) !important;
+  box-shadow: 
+    inset 0 2px 4px rgba(0,0,0,0.3),
+    0 0 0 #2a2825,
+    0 1px 2px rgba(0,0,0,0.3) !important;
+}
+
+/* Segmented switch (Ink style) */
+.ink-segmented {
+  display: flex !important;
+  border: 1px solid var(--sk-ink) !important;
+  border-radius: 2px !important;
+  overflow: hidden !important;
+  background: transparent !important;
+}
+.ink-segment {
+  flex: 1 !important;
+  text-align: center !important;
+  padding: 8px 0 !important;
+  font-size: 12px !important;
+  cursor: pointer !important;
+  border-right: 1px solid var(--sk-ink) !important;
+  transition: all 0.15s ease !important;
+  color: var(--sk-ink) !important;
+  font-weight: 600 !important;
+}
+.ink-segment:last-child {
+  border-right: none !important;
+}
+.ink-segment.active {
+  background-color: var(--sk-ink) !important;
+  color: var(--sk-paper) !important;
+}
+
+/* Grid Paper Chart */
+.grid-paper {
+  background-color: transparent !important;
+  background-image: 
+    linear-gradient(rgba(26, 26, 24, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26, 26, 24, 0.06) 1px, transparent 1px) !important;
+  background-size: 20px 20px !important;
+  border: 1px solid rgba(26, 26, 24, 0.16) !important;
+  padding: 24px 12px 12px 12px !important;
+  position: relative !important;
+}
+.x-axis {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-top: 12px !important;
+  padding: 0 10px !important;
+  font-size: 9px !important;
+  color: var(--sk-mech) !important;
+}
+
 

@@ -805,8 +805,8 @@ export default function FitMeDashboard() {
 
     if (last10Days.length === 0) {
       return (
-        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
-          <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>{t("chartEmpty")}</p>
+        <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--sk-mech)" }}>
+          <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600", fontFamily: "var(--font-ui)" }}>{t("chartEmpty")}</p>
           <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>{t("chartEmptyNote")}</p>
         </div>
       );
@@ -814,7 +814,7 @@ export default function FitMeDashboard() {
 
     const width = 500;
     const height = 200;
-    const padLeft = 40;
+    const padLeft = 45;
     const padRight = 20;
     const padTop = 25;
     const padBot = 25;
@@ -822,11 +822,20 @@ export default function FitMeDashboard() {
     const cHeight = height - padTop - padBot;
     const numDays = last10Days.length;
     
-    const barWidth = Math.min(20, (cWidth / numDays) * 0.4);
+    const barWidth = Math.min(16, (cWidth / numDays) * 0.4);
     const getX = (index: number) => {
       const step = cWidth / (numDays || 1);
       return padLeft + index * step + step / 2;
     };
+
+    // Render Grid Helper
+    const renderGridPattern = () => (
+      <defs>
+        <pattern id="chartGrid" width="20" height="20" patternUnits="userSpaceOnUse">
+          <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(26, 26, 24, 0.05)" strokeWidth="1" />
+        </pattern>
+      </defs>
+    );
 
     if (activeChartTab === "fasting") {
       const maxVal = Math.max(...last10Days.map(d => d.fastingDurationHours || 0), 24);
@@ -834,62 +843,59 @@ export default function FitMeDashboard() {
       const targetY = getY(16);
 
       return (
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
-          <defs>
-            <linearGradient id="fastGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#2d8f63" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#2d8f63" stopOpacity={0.2} />
-            </linearGradient>
-          </defs>
+        <div className="grid-paper" style={{ width: "100%" }}>
+          <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+            {renderGridPattern()}
+            <rect x={padLeft} y={padTop} width={cWidth} height={cHeight} fill="url(#chartGrid)" stroke="rgba(26, 26, 24, 0.15)" strokeWidth={1} />
 
-          {[0, 6, 12, 18, 24].map(h => {
-            if (h > maxVal) return null;
-            const y = getY(h);
-            return (
-              <g key={h}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{h}h</text>
+            {[0, 6, 12, 18, 24].map(h => {
+              if (h > maxVal) return null;
+              const y = getY(h);
+              return (
+                <g key={h}>
+                  <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(26, 26, 24, 0.08)" strokeWidth={1} />
+                  <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">{h}h</text>
+                </g>
+              );
+            })}
+
+            {maxVal >= 16 && (
+              <g>
+                <line x1={padLeft} y1={targetY} x2={width - padRight} y2={targetY} stroke="var(--sk-mech)" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.6} />
+                <text x={width - padRight - 5} y={targetY - 5} textAnchor="end" fill="var(--sk-mech)" fontSize={8} fontWeight="bold" fontFamily="var(--font-ui)">{t("chartFastingTarget")}</text>
               </g>
-            );
-          })}
+            )}
 
-          {maxVal >= 16 && (
-            <g>
-              <line x1={padLeft} y1={targetY} x2={width - padRight} y2={targetY} stroke="rgba(217, 83, 79, 0.4)" strokeWidth={1.5} strokeDasharray="3 3" />
-              <text x={width - padRight - 5} y={targetY - 5} textAnchor="end" fill="rgba(217, 83, 79, 0.9)" fontSize={8} fontWeight="bold">{t("chartFastingTarget")}</text>
-            </g>
-          )}
+            {last10Days.map((d, idx) => {
+              const val = d.fastingDurationHours || 0;
+              const x = getX(idx);
+              const y = getY(val);
+              const barH = cHeight + padTop - y;
 
-          {last10Days.map((d, idx) => {
-            const val = d.fastingDurationHours || 0;
-            const x = getX(idx);
-            const y = getY(val);
-            const barH = cHeight + padTop - y;
-
-            return (
-              <g key={d.date}>
-                {val > 0 && (
-                  <rect
-                    x={x - barWidth / 2}
-                    y={y}
-                    width={barWidth}
-                    height={barH}
-                    rx={3}
-                    fill="url(#fastGrad)"
-                  />
-                )}
-                {val > 0 && (
-                  <text x={x} y={y - 6} textAnchor="middle" fill="var(--ink)" fontSize={8} fontWeight="700">
-                    {val.toFixed(1)}h
+              return (
+                <g key={d.date}>
+                  {val > 0 && (
+                    <rect
+                      x={x - barWidth / 2}
+                      y={y}
+                      width={barWidth}
+                      height={barH}
+                      fill="var(--sk-ink)"
+                    />
+                  )}
+                  {val > 0 && (
+                    <text x={x} y={y - 6} textAnchor="middle" fill="var(--sk-ink)" fontSize={8} fontWeight="700" fontFamily="var(--font-mono)">
+                      {val.toFixed(1)}h
+                    </text>
+                  )}
+                  <text x={x} y={height - 8} textAnchor="middle" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-ui)">
+                    {d.label}
                   </text>
-                )}
-                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
-                  {d.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
       );
     }
 
@@ -904,56 +910,53 @@ export default function FitMeDashboard() {
       const getY = (val: number) => cHeight + padTop - (val / 3) * cHeight;
 
       return (
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
-          <defs>
-            <linearGradient id="periodGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ff8b77" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#ff8b77" stopOpacity={0.2} />
-            </linearGradient>
-          </defs>
+        <div className="grid-paper" style={{ width: "100%" }}>
+          <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+            {renderGridPattern()}
+            <rect x={padLeft} y={padTop} width={cWidth} height={cHeight} fill="url(#chartGrid)" stroke="rgba(26, 26, 24, 0.15)" strokeWidth={1} />
 
-          {[0, 1, 2, 3].map(flow => {
-            const y = getY(flow);
-            const label = flow === 0 ? t("chartPeriodLabel0") : flow === 1 ? t("chartPeriodLabel1") : flow === 2 ? t("chartPeriodLabel2") : t("chartPeriodLabel3");
-            return (
-              <g key={flow}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(255, 139, 119, 0.08)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{label}</text>
-              </g>
-            );
-          })}
+            {[0, 1, 2, 3].map(flow => {
+              const y = getY(flow);
+              const label = flow === 0 ? t("chartPeriodLabel0") : flow === 1 ? t("chartPeriodLabel1") : flow === 2 ? t("chartPeriodLabel2") : t("chartPeriodLabel3");
+              return (
+                <g key={flow}>
+                  <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(26, 26, 24, 0.08)" strokeWidth={1} />
+                  <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-ui)">{label}</text>
+                </g>
+              );
+            })}
 
-          {last10Days.map((d, idx) => {
-            const flow = d.period?.flow;
-            const val = getFlowVal(flow);
-            const x = getX(idx);
-            const y = getY(val);
-            const barH = cHeight + padTop - y;
+            {last10Days.map((d, idx) => {
+              const flow = d.period?.flow;
+              const val = getFlowVal(flow);
+              const x = getX(idx);
+              const y = getY(val);
+              const barH = cHeight + padTop - y;
 
-            return (
-              <g key={d.date}>
-                {val > 0 && (
-                  <rect
-                    x={x - barWidth / 2}
-                    y={y}
-                    width={barWidth}
-                    height={barH}
-                    rx={3}
-                    fill="url(#periodGrad)"
-                  />
-                )}
-                {val > 0 && (
-                  <text x={x} y={y - 6} textAnchor="middle" fontSize={10}>
-                    🌸
+              return (
+                <g key={d.date}>
+                  {val > 0 && (
+                    <rect
+                      x={x - barWidth / 2}
+                      y={y}
+                      width={barWidth}
+                      height={barH}
+                      fill="var(--sk-ink)"
+                    />
+                  )}
+                  {val > 0 && (
+                    <text x={x} y={y - 6} textAnchor="middle" fontSize={10}>
+                      🌸
+                    </text>
+                  )}
+                  <text x={x} y={height - 8} textAnchor="middle" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-ui)">
+                    {d.label}
                   </text>
-                )}
-                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
-                  {d.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
       );
     }
 
@@ -962,54 +965,51 @@ export default function FitMeDashboard() {
       const getY = (val: number) => cHeight + padTop - (val / maxBowel) * cHeight;
 
       return (
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
-          <defs>
-            <linearGradient id="bowelGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#cfa17b" stopOpacity={0.9} />
-              <stop offset="100%" stopColor="#8d5b4c" stopOpacity={0.3} />
-            </linearGradient>
-          </defs>
+        <div className="grid-paper" style={{ width: "100%" }}>
+          <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+            {renderGridPattern()}
+            <rect x={padLeft} y={padTop} width={cWidth} height={cHeight} fill="url(#chartGrid)" stroke="rgba(26, 26, 24, 0.15)" strokeWidth={1} />
 
-          {Array.from({ length: maxBowel + 1 }).map((_, b) => {
-            const y = getY(b);
-            return (
-              <g key={b}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{b} {t("chartBowelUnit")}</text>
-              </g>
-            );
-          })}
+            {Array.from({ length: maxBowel + 1 }).map((_, b) => {
+              const y = getY(b);
+              return (
+                <g key={b}>
+                  <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(26, 26, 24, 0.08)" strokeWidth={1} />
+                  <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">{b} {t("chartBowelUnit")}</text>
+                </g>
+              );
+            })}
 
-          {last10Days.map((d, idx) => {
-            const val = d.bowelMovements?.length || 0;
-            const x = getX(idx);
-            const y = getY(val);
-            const barH = cHeight + padTop - y;
+            {last10Days.map((d, idx) => {
+              const val = d.bowelMovements?.length || 0;
+              const x = getX(idx);
+              const y = getY(val);
+              const barH = cHeight + padTop - y;
 
-            return (
-              <g key={d.date}>
-                {val > 0 && (
-                  <rect
-                    x={x - barWidth / 2}
-                    y={y}
-                    width={barWidth}
-                    height={barH}
-                    rx={3}
-                    fill="url(#bowelGrad)"
-                  />
-                )}
-                {val > 0 && (
-                  <text x={x} y={y - 6} textAnchor="middle" fill="#8d5b4c" fontSize={8} fontWeight="bold">
-                    💩 {val}
+              return (
+                <g key={d.date}>
+                  {val > 0 && (
+                    <rect
+                      x={x - barWidth / 2}
+                      y={y}
+                      width={barWidth}
+                      height={barH}
+                      fill="var(--sk-ink)"
+                    />
+                  )}
+                  {val > 0 && (
+                    <text x={x} y={y - 6} textAnchor="middle" fill="var(--sk-ink)" fontSize={8} fontWeight="bold" fontFamily="var(--font-mono)">
+                      💩 {val}
+                    </text>
+                  )}
+                  <text x={x} y={height - 8} textAnchor="middle" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-ui)">
+                    {d.label}
                   </text>
-                )}
-                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
-                  {d.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
       );
     }
 
@@ -1018,8 +1018,8 @@ export default function FitMeDashboard() {
       
       if (weightDays.length === 0) {
         return (
-          <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--muted)" }}>
-            <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600" }}>{t("weightTitle")}</p>
+          <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--sk-mech)" }}>
+            <p style={{ margin: "0 0 10px", fontSize: "14px", fontWeight: "600", fontFamily: "var(--font-ui)" }}>{t("weightTitle")}</p>
             <p style={{ margin: 0, fontSize: "12px", opacity: 0.7 }}>{t("chartEmptyNote")}</p>
           </div>
         );
@@ -1040,55 +1040,58 @@ export default function FitMeDashboard() {
       const pathD = points.length > 0
         ? `M ${points[0].x} ${points[0].y} ` + points.slice(1).map(p => `L ${p.x} ${p.y}`).join(" ")
         : "";
-      const areaD = pathD 
-        ? `${pathD} L ${points[points.length - 1].x} ${cHeight + padTop} L ${points[0].x} ${cHeight + padTop} Z`
-        : "";
         
       return (
-        <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
-          <defs>
-            <linearGradient id="weightGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#41aa74" stopOpacity="0.4" />
-              <stop offset="100%" stopColor="#41aa74" stopOpacity={0.0} />
-            </linearGradient>
-          </defs>
+        <div className="grid-paper" style={{ width: "100%" }}>
+          <svg width="100%" height={height} viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
+            {renderGridPattern()}
+            <rect x={padLeft} y={padTop} width={cWidth} height={cHeight} fill="url(#chartGrid)" stroke="rgba(26, 26, 24, 0.15)" strokeWidth={1} />
 
-          {Array.from({ length: 5 }).map((_, idx) => {
-            const val = minWeight + (weightRange / 4) * idx;
-            const y = getY(val);
-            return (
-              <g key={idx}>
-                <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(21, 36, 29, 0.08)" strokeWidth={1} />
-                <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--muted)" fontSize={9} fontWeight="600">{val.toFixed(1)}kg</text>
-              </g>
-            );
-          })}
+            {Array.from({ length: 5 }).map((_, idx) => {
+              const val = minWeight + (weightRange / 4) * idx;
+              const y = getY(val);
+              return (
+                <g key={idx}>
+                  <line x1={padLeft} y1={y} x2={width - padRight} y2={y} stroke="rgba(26, 26, 24, 0.08)" strokeWidth={1} />
+                  <text x={padLeft - 8} y={y + 3} textAnchor="end" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-mono)">{val.toFixed(1)}kg</text>
+                </g>
+              );
+            })}
 
-          {areaD && <path d={areaD} fill="url(#weightGrad)" />}
-          {pathD && <path d={pathD} fill="none" stroke="#41aa74" strokeWidth={2} />}
+            {pathD && <path d={pathD} fill="none" stroke="var(--sk-ink)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />}
 
-          {last10Days.map((d, idx) => {
-            const val = d.weightKg;
-            const x = getX(idx);
-            const y = val ? getY(val) : 0;
-            
-            return (
-              <g key={d.date}>
-                {val && val > 0 && (
-                  <g>
-                    <circle cx={x} cy={y} r={3.5} fill="#ffffff" stroke="#41aa74" strokeWidth={2} />
-                    <text x={x} y={y - 8} textAnchor="middle" fill="var(--ink)" fontSize={8} fontWeight="700">
-                      {val.toFixed(1)}kg
-                    </text>
-                  </g>
-                )}
-                <text x={x} y={height - 8} textAnchor="middle" fill="var(--muted)" fontSize={9} fontWeight="600">
-                  {d.label}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
+            {last10Days.map((d, idx) => {
+              const val = d.weightKg;
+              const x = getX(idx);
+              const y = val ? getY(val) : 0;
+              const isLastPoint = val && idx === last10Days.map(item => item.weightKg).findLastIndex(w => w !== undefined && w > 0);
+              
+              return (
+                <g key={d.date}>
+                  {val && val > 0 && (
+                    <g>
+                      <circle 
+                        cx={x} 
+                        cy={y} 
+                        r={isLastPoint ? 5 : 4} 
+                        fill={isLastPoint ? "var(--sk-oil)" : "var(--sk-paper)"} 
+                        stroke="var(--sk-ink)" 
+                        strokeWidth={2} 
+                        className={isLastPoint ? "oil-glow" : ""}
+                      />
+                      <text x={x} y={y - 8} textAnchor="middle" fill="var(--sk-ink)" fontSize={8} fontWeight="700" fontFamily="var(--font-mono)">
+                        {val.toFixed(1)}kg
+                      </text>
+                    </g>
+                  )}
+                  <text x={x} y={height - 8} textAnchor="middle" fill="var(--sk-mech)" fontSize={9} fontWeight="600" fontFamily="var(--font-ui)">
+                    {d.label}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
       );
     }
 
@@ -1477,10 +1480,10 @@ export default function FitMeDashboard() {
 
   if (loading) {
     return (
-      <div className="lock-screen-overlay">
-        <div className="lock-card">
-          <div className="lock-title">载入中...</div>
-          <div className="lock-subtitle">正在获取您的健康看板数据</div>
+      <div className="lock-screen-overlay" style={{ background: "radial-gradient(circle at 50% 0%, #222, #000)" }}>
+        <div className="lock-card dark-glass-shell" style={{ border: "1px solid rgba(255,255,255,0.1)", textAlign: "center", padding: "40px 30px" }}>
+          <div className="lock-title" style={{ color: "#fff", fontFamily: "var(--font-content)", fontSize: "24px", margin: 0 }}>载入中...</div>
+          <div className="lock-subtitle" style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginTop: "8px" }}>正在获取您的健康看板数据</div>
         </div>
       </div>
     );
@@ -1489,12 +1492,12 @@ export default function FitMeDashboard() {
   // 1. Render Lock Screen
   if (authenticated === false) {
     return (
-      <div className="lock-screen-overlay">
+      <div className="lock-screen-overlay" style={{ background: "radial-gradient(circle at 50% 0%, #222, #000)" }}>
         {/* Language select on top right */}
         <div style={{ position: "absolute", top: "20px", right: "20px", zIndex: 10 }}>
           <select
             className="form-select"
-            style={{ width: "auto", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "12px" }}
+            style={{ width: "auto", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.2)", padding: "4px 10px", borderRadius: "6px", fontSize: "12px" }}
             value={lang}
             onChange={(e) => {
               const val = e.target.value as any;
@@ -1502,21 +1505,17 @@ export default function FitMeDashboard() {
               localStorage.setItem("fitme_lang", val);
             }}
           >
-            <option value="en">English 🇬🇧</option>
-            <option value="zh">简体中文 🇨🇳</option>
-            <option value="ja">日本語 🇯🇵</option>
+            <option value="en" style={{ background: "#222" }}>English 🇬🇧</option>
+            <option value="zh" style={{ background: "#222" }}>简体中文 🇨🇳</option>
+            <option value="ja" style={{ background: "#222" }}>日本語 🇯🇵</option>
           </select>
         </div>
 
-        {/* Glowing background orbs */}
-        <div className="lock-bg-orb lock-bg-orb-1" />
-        <div className="lock-bg-orb lock-bg-orb-2" />
-
-        <form className={`lock-card ${shake ? "shake" : ""}`} onSubmit={handleUnlock}>
-          <div className="lock-title">{t("lockTitle")}</div>
-          <div className="lock-subtitle">{t("lockPasscode")}</div>
+        <form className={`lock-card dark-glass-shell ${shake ? "shake" : ""}`} style={{ border: "1px solid rgba(255,255,255,0.1)", padding: "40px 30px" }} onSubmit={handleUnlock}>
+          <div className="lock-title" style={{ color: "#fff", fontFamily: "var(--font-content)", fontSize: "28px" }}>{t("lockTitle")}</div>
+          <div className="lock-subtitle" style={{ color: "rgba(255,255,255,0.6)", fontSize: "14px", marginTop: "6px" }}>{t("lockPasscode")}</div>
           
-          <div className="passcode-container">
+          <div className="passcode-container" style={{ margin: "24px 0" }}>
             <input
               type="password"
               pattern="[0-9]*"
@@ -1527,7 +1526,7 @@ export default function FitMeDashboard() {
               onChange={handlePasscodeChange}
               autoFocus
             />
-            <div className="passcode-slots">
+            <div className="passcode-slots" style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
               {[0, 1, 2, 3].map((index) => {
                 const isFilled = passcode.length > index;
                 const isActive = passcode.length === index;
@@ -1535,6 +1534,19 @@ export default function FitMeDashboard() {
                   <div
                     key={index}
                     className={`passcode-slot ${isFilled ? "filled" : ""} ${isActive ? "active" : ""}`}
+                    style={{
+                      width: "48px",
+                      height: "48px",
+                      border: isFilled ? "2px solid var(--sk-oil)" : "2px solid rgba(255,255,255,0.2)",
+                      borderRadius: "6px",
+                      background: isFilled ? "rgba(217,138,44,0.1)" : "rgba(255,255,255,0.05)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "var(--sk-oil)",
+                      fontSize: "20px",
+                      boxShadow: isFilled ? "0 0 10px rgba(217,138,44,0.3)" : "none"
+                    }}
                   >
                     {isFilled ? "●" : ""}
                   </div>
@@ -1543,8 +1555,11 @@ export default function FitMeDashboard() {
             </div>
           </div>
 
-          {passcodeError && <div className="lock-error">{t("lockError")}</div>}
-          <button type="submit" className="btn btn-primary" style={{ width: "100%", marginTop: "20px" }}>
+          {passcodeError && <div className="lock-error" style={{ color: "#ff8b77", fontSize: "13px", marginBottom: "16px", textAlign: "center" }}>{t("lockError")}</div>}
+          <button 
+            type="submit" 
+            style={{ width: "100%", padding: "12px", background: "var(--sk-oil)", border: "none", color: "#fff", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", fontSize: "15px" }}
+          >
             {t("lockButton")}
           </button>
         </form>
@@ -1558,12 +1573,12 @@ export default function FitMeDashboard() {
 
   if (!isProfileConfigured) {
     return (
-      <div className="lock-screen-overlay">
+      <div className="lock-screen-overlay" style={{ background: "radial-gradient(circle at 50% 0%, #222, #000)" }}>
         {/* Language select on top right */}
         <div style={{ position: "absolute", top: "20px", right: "20px", zIndex: 10 }}>
           <select
             className="form-select"
-            style={{ width: "auto", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "none", padding: "4px 10px", borderRadius: "6px", fontSize: "12px" }}
+            style={{ width: "auto", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "1px solid rgba(255,255,255,0.2)", padding: "4px 10px", borderRadius: "6px", fontSize: "12px" }}
             value={lang}
             onChange={(e) => {
               const val = e.target.value as any;
@@ -1571,31 +1586,32 @@ export default function FitMeDashboard() {
               localStorage.setItem("fitme_lang", val);
             }}
           >
-            <option value="en">English 🇬🇧</option>
-            <option value="zh">简体中文 🇨🇳</option>
-            <option value="ja">日本語 🇯🇵</option>
+            <option value="en" style={{ background: "#222" }}>English 🇬🇧</option>
+            <option value="zh" style={{ background: "#222" }}>简体中文 🇨🇳</option>
+            <option value="ja" style={{ background: "#222" }}>日本語 🇯🇵</option>
           </select>
         </div>
 
-        {/* Glowing background orbs */}
-        <div className="lock-bg-orb lock-bg-orb-1" />
-        <div className="lock-bg-orb lock-bg-orb-2" />
+        <form className="lock-card dark-glass-shell" style={{ width: "min(440px, 94vw)", padding: "30px 24px", border: "1px solid rgba(255,255,255,0.1)" }} onSubmit={handleSetupSubmit}>
+          <div className="lock-title" style={{ color: "#fff", fontFamily: "var(--font-content)", fontSize: "28px" }}>{t("onboardTitle")}</div>
+          <div className="lock-subtitle" style={{ color: "rgba(255,255,255,0.6)", fontSize: "13px", marginTop: "6px" }}>Configuring bodily metrics generates BMR & caloric goals.</div>
 
-        <form className="lock-card" style={{ width: "min(440px, 94vw)", padding: "30px 24px" }} onSubmit={handleSetupSubmit}>
-          <div className="lock-title">{t("onboardTitle")}</div>
-          <div className="lock-subtitle">Configuring bodily metrics generates BMR & caloric goals.</div>
-
-          <div className="modal-body" style={{ padding: 0, gap: "14px", textAlign: "left", margin: "20px 0" }}>
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">{t("onboardSex")}</label>
-                <select className="form-select" value={setupSex} onChange={e => setSetupSex(e.target.value)}>
-                  <option value="male">{t("onboardMale")} ♂</option>
-                  <option value="female">{t("onboardFemale")} ♀</option>
+          <div className="modal-body" style={{ padding: 0, display: "flex", flexDirection: "column", gap: "14px", textAlign: "left", margin: "20px 0", color: "#fff" }}>
+            <div className="form-row" style={{ display: "flex", gap: "12px" }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardSex")}</label>
+                <select 
+                  className="form-select" 
+                  value={setupSex} 
+                  onChange={e => setSetupSex(e.target.value)}
+                  style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
+                >
+                  <option value="male" style={{ background: "#222" }}>{t("onboardMale")} ♂</option>
+                  <option value="female" style={{ background: "#222" }}>{t("onboardFemale")} ♀</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label">{t("onboardAge")}</label>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardAge")}</label>
                 <input
                   type="number"
                   required
@@ -1604,13 +1620,14 @@ export default function FitMeDashboard() {
                   className="form-input"
                   value={setupAge}
                   onChange={e => setSetupAge(e.target.value)}
+                  style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                 />
               </div>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">{t("onboardHeight")}</label>
+            <div className="form-row" style={{ display: "flex", gap: "12px" }}>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardHeight")}</label>
                 <input
                   type="number"
                   required
@@ -1619,10 +1636,11 @@ export default function FitMeDashboard() {
                   className="form-input"
                   value={setupHeight}
                   onChange={e => setSetupHeight(e.target.value)}
+                  style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">{t("onboardWeight")}</label>
+              <div className="form-group" style={{ flex: 1 }}>
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardWeight")}</label>
                 <input
                   type="number"
                   required
@@ -1631,12 +1649,13 @@ export default function FitMeDashboard() {
                   className="form-input"
                   value={setupWeight}
                   onChange={e => setSetupWeight(e.target.value)}
+                  style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                 />
               </div>
             </div>
 
             <div className="form-group">
-              <label className="form-label">{t("onboardTarget")}</label>
+              <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardTarget")}</label>
               <input
                 type="number"
                 min="10"
@@ -1645,11 +1664,16 @@ export default function FitMeDashboard() {
                 placeholder={t("onboardTargetPlaceholder")}
                 value={setupTargetWeight}
                 onChange={e => setSetupTargetWeight(e.target.value)}
+                style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
               />
             </div>
           </div>
 
-          <button type="submit" className="btn btn-primary" style={{ width: "100%" }} disabled={setupLoading}>
+          <button 
+            type="submit" 
+            style={{ width: "100%", padding: "12px", background: "var(--sk-oil)", border: "none", color: "#fff", borderRadius: "6px", fontWeight: "bold", cursor: "pointer", fontSize: "15px" }}
+            disabled={setupLoading}
+          >
             {setupLoading ? t("onboardSaving") : t("onboardSubmit")}
           </button>
         </form>
@@ -1753,290 +1777,259 @@ export default function FitMeDashboard() {
   const todayNutrition = latest.nutrition || {};
 
   return (
-    <main className="page">
-      {/* 2. Topbar Header */}
-      <div className="topbar">
-        <div>
-          <p className="eyebrow" id="periodLabel">
-            {t("topEyebrow", { date: latest.date })}
-          </p>
-          <h1 id="pageTitle">{t("topTitle")}</h1>
-          <p className="subcopy">
-            {t("topSubcopy")}
-          </p>
-        </div>
-        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
-          <div className="status-pill" id="statusPill" style={{ margin: 0 }}>
-            {t("topWeightStatus", { W: data.profile.latestWeightKg, G: targetWeightLabel })}
+    <div className="page dark-glass-shell" style={{ maxWidth: "480px", margin: "40px auto", padding: "12px", border: "1px solid rgba(255,255,255,0.1)" }}>
+      <main className="canvas heavy-paper">
+        {/* 2. Topbar Header */}
+        <div className="header-plate" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
+          <div>
+            <h1 style={{ fontFamily: "var(--font-content)", fontSize: "24px", margin: 0, fontWeight: 600, color: "var(--sk-ink)" }}>{t("topTitle")}</h1>
+            <p className="ui-text" style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#6e6b64" }}>
+              {t("topEyebrow", { date: latest.date })}
+            </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            style={{ padding: "8px 14px", fontSize: "13px", display: "inline-flex", alignItems: "center", gap: "4px", border: "1px solid var(--glass-edge)" }}
-            onClick={handleOpenSettings}
-          >
-            {t("settingsButton")}
-          </button>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+            <div className="dial-cutout ui-text" style={{ padding: "6px 10px", fontSize: "10px", background: "#eae7df", fontWeight: "bold", border: "1px solid rgba(26,26,24,0.15)" }}>
+              {t("topWeightStatus", { W: data.profile.latestWeightKg, G: targetWeightLabel })}
+            </div>
+            <button
+              type="button"
+              className="mech-btn-small"
+              style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={handleOpenSettings}
+            >
+              ⚙️
+            </button>
+          </div>
         </div>
-      </div>
 
-      {/* Fasting Timer Status Card */}
-      <section className="fasting-banner" style={{ margin: "24px", background: "rgba(255,255,255,0.7)", padding: "18px 20px", borderRadius: "16px", border: "1px solid var(--glass-edge)", display: "flex", justifyContent: "space-between", alignItems: "center", boxShadow: "0 10px 30px rgba(21, 36, 29, 0.05)", backdropFilter: "blur(20px)" }}>
-        <div>
-          <p className="section-title" style={{ margin: "0 0 6px" }}>
+        {/* Fasting Timer Status Card */}
+        <section className="mechanical-timer">
+          <div className="ui-text" style={{ marginBottom: "12px", color: "#888" }}>
             {data?.fastingState?.startTime ? t("fastActive") : t("fastIdle")}
-          </p>
-          <p className="metric-value" style={{ fontSize: "22px", margin: 0, color: data?.fastingState?.startTime ? "var(--green)" : "var(--muted)", letterSpacing: "1px" }}>
-            {data?.fastingState?.startTime ? fastingElapsed || t("fastCalculating") : "--"}
-          </p>
-        </div>
-        <button 
-          className="btn" 
-          style={{ background: data?.fastingState?.startTime ? "#ffebec" : "var(--green)", color: data?.fastingState?.startTime ? "#d93838" : "#fff", border: "none", padding: "10px 18px", fontSize: "14px", fontWeight: "700" }}
-          onClick={data?.fastingState?.startTime ? handleEndFast : handleStartFast}
-          disabled={isFastingSaving}
-        >
-          {isFastingSaving ? t("fastSaving") : (data?.fastingState?.startTime ? t("fastEnd") : t("fastStart"))}
-        </button>
-      </section>
-
-      {/* 3. Simplified Today's Summary Card */}
-      <section className="hero" style={{ gridTemplateColumns: "1fr", margin: "0 24px 24px" }}>
-        <div className="panel" style={{ margin: 0 }}>
-          <div className="panel-inner" style={{ marginBottom: "14px" }}>
-            <p className="section-title">{t("sumTitle")}</p>
           </div>
-          <div className="hero-grid" id="metricGrid" style={{ gridTemplateColumns: "repeat(2, 1fr)", gap: "16px" }}>
-            <div className="metric">
-              <span className="metric-label">{t("sumFasting")}</span>
-              <span className="metric-value">{fmt(latest.fastingDurationHours || 0)} {t("sumFastingUnit")}</span>
-              <span className="metric-note">
-                {t("sumFastingNote")}
-              </span>
+          <div className="display-screen data-text" style={{ fontSize: "32px", fontWeight: "bold" }}>
+            {data?.fastingState?.startTime ? fastingElapsed || t("fastCalculating") : "--:--:--"}
+          </div>
+          <button 
+            className={`heavy-switch ${data?.fastingState?.startTime ? "active-state" : ""}`}
+            onClick={data?.fastingState?.startTime ? handleEndFast : handleStartFast}
+            disabled={isFastingSaving}
+          >
+            {isFastingSaving ? t("fastSaving") : (data?.fastingState?.startTime ? t("fastEnd") : t("fastStart"))}
+          </button>
+        </section>
+
+        {/* 3. Today's Summary Card */}
+        <div className="ink-card" style={{ marginBottom: "24px" }}>
+          <h2 className="card-title content-text">
+            {t("sumTitle")}
+            <span className="ui-text">STATISTICS</span>
+          </h2>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+            <div>
+              <div className="ui-text" style={{ fontSize: "10px" }}>{t("sumFasting")}</div>
+              <div className="data-text" style={{ fontSize: "20px", fontWeight: "bold", margin: "4px 0", color: "var(--sk-ink)" }}>
+                {fmt(latest.fastingDurationHours || 0)} <span style={{ fontSize: "12px", fontFamily: "var(--font-content)" }}>{t("sumFastingUnit")}</span>
+              </div>
+              <div style={{ fontSize: "12px", fontStyle: "italic", opacity: 0.7 }}>{t("sumFastingNote")}</div>
             </div>
-            <div className="metric">
-              <span className="metric-label">{t("sumWeight")}</span>
-              <span className="metric-value">{latest.weightKg ? `${latest.weightKg} kg` : `${data.profile.latestWeightKg} kg`}</span>
-              <span className="metric-note">
+            <div>
+              <div className="ui-text" style={{ fontSize: "10px" }}>{t("sumWeight")}</div>
+              <div className="data-text" style={{ fontSize: "20px", fontWeight: "bold", margin: "4px 0", color: "var(--sk-ink)" }}>
+                {latest.weightKg ? `${latest.weightKg} kg` : `${data.profile.latestWeightKg} kg`}
+              </div>
+              <div style={{ fontSize: "12px", fontStyle: "italic", opacity: 0.7 }}>
                 {latest.weightKg ? t("sumWeightNoteActive") : t("sumWeightNoteInactive")}
-              </span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Vitals Tracker Cards (Period & Bowels) */}
-      <section className="section" style={{ gridTemplateColumns: "repeat(3, 1fr)", gap: "24px", margin: "0 24px 24px" }}>
-        {/* Period Card */}
-        <div className={`panel vitals-card period-card ${latest.period ? "active-period" : ""}`} style={{ margin: 0 }}>
-          <div className="panel-inner">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <p className="section-title" style={{ margin: 0, color: latest.period ? "#ff7c7c" : "inherit" }}>
-                {t("periodTitle")}
-              </p>
-              <div className="period-switch-wrap">
-                <select
-                  className="form-select"
-                  style={{ width: "auto", padding: "4px 8px", fontSize: "12px", background: "rgba(255,255,255,0.15)", color: latest.period ? "#ffffff" : "inherit", border: "none" }}
-                  value={latest.period?.flow || "none"}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    handleTogglePeriod(latest.date, val === "none" ? null : val as any);
-                  }}
-                  disabled={isVitalsSaving}
-                >
-                  <option value="none">{t("periodSwitchNone")}</option>
-                  <option value="light">{t("periodSwitchLight")}</option>
-                  <option value="medium">{t("periodSwitchMedium")}</option>
-                  <option value="heavy">{t("periodSwitchHeavy")}</option>
-                </select>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div style={{ marginTop: "16px" }}>
+        {/* 4. Vitals Tracker Cards (Period, Bowels, Weight) */}
+        <section style={{ display: "flex", flexDirection: "column", gap: "24px", marginBottom: "24px" }}>
+          {/* Period Card */}
+          <div className="ink-card">
+            <h2 className="card-title content-text">
+              {t("periodTitle")}
+              <span className="ui-text">MENSTRUAL CYCLE</span>
+            </h2>
+            <div className="ink-segmented ui-text">
+              <div 
+                className={`ink-segment ${(latest.period?.flow || "none") === "none" ? "active" : ""}`}
+                onClick={() => !isVitalsSaving && handleTogglePeriod(latest.date, null)}
+              >
+                {t("periodSwitchNone")}
+              </div>
+              <div 
+                className={`ink-segment ${(latest.period?.flow) === "light" ? "active" : ""}`}
+                onClick={() => !isVitalsSaving && handleTogglePeriod(latest.date, "light")}
+              >
+                {t("periodSwitchLight")}
+              </div>
+              <div 
+                className={`ink-segment ${(latest.period?.flow) === "medium" ? "active" : ""}`}
+                onClick={() => !isVitalsSaving && handleTogglePeriod(latest.date, "medium")}
+              >
+                {t("periodSwitchMedium")}
+              </div>
+              <div 
+                className={`ink-segment ${(latest.period?.flow) === "heavy" ? "active" : ""}`}
+                onClick={() => !isVitalsSaving && handleTogglePeriod(latest.date, "heavy")}
+              >
+                {t("periodSwitchHeavy")}
+              </div>
+            </div>
+            
+            <div style={{ marginTop: "14px", fontSize: "14px", fontStyle: "italic", opacity: 0.8 }}>
               {latest.period ? (
-                <div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
-                    {t("periodActive", { X: calculatePeriodDay(latest.date) })}
-                  </h3>
-                  <span style={{ fontSize: "12px", opacity: 0.8 }}>
-                    {t("periodNoteActive", { F: latest.period.flow === "light" ? t("periodFlowLight") : latest.period.flow === "heavy" ? t("periodFlowHeavy") : t("periodFlowMedium") })}
-                  </span>
-                </div>
+                <span>{t("periodActive", { X: calculatePeriodDay(latest.date) })}</span>
               ) : (
-                <div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>{t("periodInactive")}</h3>
-                  <span style={{ fontSize: "12px", opacity: 0.6 }}>{t("periodNoteInactive")}</span>
-                </div>
+                <span>{t("periodInactive")}</span>
               )}
             </div>
           </div>
-        </div>
 
-        {/* Bowel Movement Card */}
-        <div className="panel vitals-card bowel-card" style={{ margin: 0 }}>
-          <div className="panel-inner">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <p className="section-title" style={{ margin: 0 }}>{t("bowelTitle")}</p>
+          {/* Bowel Movement Card */}
+          <div className="ink-card">
+            <h2 className="card-title content-text">
+              {t("bowelTitle")}
+              <span className="ui-text">BOWEL COUNT</span>
+            </h2>
+            <div className="row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div className="dial-cutout data-text dial-value" style={{ fontSize: "22px" }}>
+                {String((latest.bowelMovements || []).length).padStart(2, "0")}
+              </div>
               <button
-                className="btn btn-primary"
-                style={{ padding: "6px 12px", fontSize: "12px" }}
+                className="mech-btn-small"
                 onClick={() => handleQuickBowelMovement(latest.date)}
                 disabled={isVitalsSaving}
               >
-                {t("bowelButton")}
+                +
               </button>
             </div>
-
-            <div style={{ marginTop: "16px" }}>
-              <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
-                {t("bowelCount", { X: (latest.bowelMovements || []).length })}
-              </h3>
-              
-              {/* Bowel list */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "10px", maxHeight: "80px", overflowY: "auto" }}>
-                {(latest.bowelMovements || []).length === 0 ? (
-                  <span style={{ fontSize: "12px", opacity: 0.6 }}>{t("bowelEmpty")}</span>
-                ) : (
-                  (latest.bowelMovements || []).map((item) => (
-                    <span 
-                      key={item.id} 
-                      style={{ background: "rgba(141, 91, 76, 0.25)", border: "1px solid rgba(141, 91, 76, 0.4)", borderRadius: "20px", padding: "3px 8px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+            
+            {/* Bowel list */}
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "8px", marginTop: "14px" }}>
+              {(latest.bowelMovements || []).length === 0 ? (
+                <span style={{ fontSize: "13px", fontStyle: "italic", opacity: 0.6 }}>{t("bowelEmpty")}</span>
+              ) : (
+                (latest.bowelMovements || []).map((item) => (
+                  <span 
+                    key={item.id} 
+                    style={{ background: "#eae7df", border: "1px solid rgba(26,26,24,0.15)", borderRadius: "3px", padding: "3px 8px", fontSize: "11px", display: "inline-flex", alignItems: "center", gap: "4px" }}
+                  >
+                    💩 {item.time}
+                    <button 
+                      type="button"
+                      style={{ background: "none", border: "none", color: "#d93838", cursor: "pointer", padding: "0 2px", fontWeight: "bold" }}
+                      onClick={() => handleDeleteBowelMovement(latest.date, item.id)}
+                      disabled={isVitalsSaving}
                     >
-                      💩 {item.time}
-                      <button 
-                        type="button"
-                        style={{ background: "none", border: "none", color: "#ff8b77", cursor: "pointer", padding: "0 2px", fontWeight: "bold" }}
-                        onClick={() => handleDeleteBowelMovement(latest.date, item.id)}
-                        disabled={isVitalsSaving}
-                      >
-                        &times;
-                      </button>
-                    </span>
-                  ))
-                )}
-              </div>
+                      &times;
+                    </button>
+                  </span>
+                ))
+              )}
             </div>
           </div>
-        </div>
 
-        {/* Weight Card */}
-        <div className="panel vitals-card weight-card" style={{ margin: 0 }}>
-          <div className="panel-inner">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <p className="section-title" style={{ margin: 0 }}>{t("weightTitle")}</p>
-              <div style={{ display: "flex", gap: "6px" }}>
+          {/* Weight Card */}
+          <div className="ink-card">
+            <h2 className="card-title content-text">
+              {t("weightTitle")}
+              <span className="ui-text">KILOGRAMS</span>
+            </h2>
+            <div className="row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                <div className="dial-cutout data-text dial-value" style={{ fontSize: "22px" }}>
+                  {latest.weightKg ? latest.weightKg.toFixed(1) : (data?.profile?.latestWeightKg ? data.profile.latestWeightKg.toFixed(1) : "0.0")}
+                </div>
                 <input
                   type="number"
                   step="0.1"
-                  placeholder={latest.weightKg ? latest.weightKg.toString() : (data?.profile?.latestWeightKg ? data.profile.latestWeightKg.toString() : "0.0")}
-                  style={{ width: "65px", padding: "4px 8px", fontSize: "12px", background: "rgba(255,255,255,0.15)", color: "#ffffff", border: "none", borderRadius: "6px", textAlign: "center" }}
+                  placeholder="0.0"
+                  style={{ width: "65px", padding: "6px", fontSize: "12px", background: "#eae7df", color: "var(--sk-ink)", border: "1px solid rgba(26,26,24,0.15)", borderRadius: "4px", textAlign: "center" }}
                   value={weightInput}
                   onChange={(e) => setWeightInput(e.target.value)}
                   disabled={isVitalsSaving}
                 />
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  style={{ padding: "4px 10px", fontSize: "12px" }}
-                  onClick={() => {
-                    const w = parseFloat(weightInput);
-                    if (!isNaN(w) && w > 0) {
-                      handleSaveWeight(latest.date, w);
-                      setWeightInput("");
-                    } else {
-                      alert(lang === "zh" ? "请输入有效的体重数字（如 65.4）" : lang === "ja" ? "有効な体重を入力してください（例：65.4）" : "Please enter a valid weight (e.g. 65.4)");
-                    }
-                  }}
-                  disabled={isVitalsSaving}
-                >
-                  {t("weightButton")}
-                </button>
               </div>
-            </div>
-
-            <div style={{ marginTop: "16px" }}>
-              {latest.weightKg ? (
-                <div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: "20px", color: "#ffffff" }}>
-                    {t("weightActive", { X: latest.weightKg })}
-                  </h3>
-                  <span style={{ fontSize: "12px", opacity: 0.8 }}>
-                    {t("weightNoteActive")}
-                  </span>
-                </div>
-              ) : (
-                <div>
-                  <h3 style={{ margin: "0 0 6px", fontSize: "16px", opacity: 0.7 }}>{t("weightNotRecorded")}</h3>
-                  <span style={{ fontSize: "12px", opacity: 0.6 }}>
-                    {t("weightNoteInactive", { X: data?.profile?.latestWeightKg ? data.profile.latestWeightKg : "0.0" })}
-                  </span>
-                </div>
-              )}
+              <button
+                type="button"
+                className="mech-btn-small"
+                style={{ width: "auto", borderRadius: "4px", padding: "0 12px", fontSize: "13px", fontFamily: "var(--font-ui)", fontWeight: "bold" }}
+                onClick={() => {
+                  const w = parseFloat(weightInput);
+                  if (!isNaN(w) && w > 0) {
+                    handleSaveWeight(latest.date, w);
+                    setWeightInput("");
+                  } else {
+                    alert(lang === "zh" ? "请输入有效的体重数字（如 65.4）" : lang === "ja" ? "有効な体重を入力してください（例：65.4）" : "Please enter a valid weight (e.g. 65.4)");
+                  }
+                }}
+                disabled={isVitalsSaving}
+              >
+                {t("weightButton")}
+              </button>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* 5. 4-Tab Statistical Chart Section */}
-      <section className="section" style={{ gridTemplateColumns: "1fr", margin: "0 24px 24px" }}>
-        <div className="panel wide" style={{ margin: 0 }}>
-          <div className="panel-inner">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "20px", flexWrap: "wrap", gap: "10px" }}>
-              <p className="section-title" style={{ margin: 0 }}>{t("chartTitle")}</p>
-              <div className="meal-toolbar" style={{ margin: 0 }}>
-                <button
-                  type="button"
-                  className={`meal-filter ${activeChartTab === "fasting" ? "is-active" : ""}`}
-                  onClick={() => setActiveChartTab("fasting")}
-                >
-                  {t("chartFasting")}
-                </button>
-                <button
-                  type="button"
-                  className={`meal-filter ${activeChartTab === "period" ? "is-active" : ""}`}
-                  onClick={() => setActiveChartTab("period")}
-                >
-                  {t("chartPeriod")}
-                </button>
-                <button
-                  type="button"
-                  className={`meal-filter ${activeChartTab === "bowel" ? "is-active" : ""}`}
-                  onClick={() => setActiveChartTab("bowel")}
-                >
-                  {t("chartBowel")}
-                </button>
-                <button
-                  type="button"
-                  className={`meal-filter ${activeChartTab === "weight" ? "is-active" : ""}`}
-                  onClick={() => setActiveChartTab("weight")}
-                >
-                  {t("chartWeight")}
-                </button>
-              </div>
+        {/* 5. 4-Tab Statistical Chart Section */}
+        <div className="ink-card chart-section" style={{ marginBottom: 0 }}>
+          <h2 className="card-title content-text">
+            {t("chartTitle")}
+            <span className="ui-text">TREND ANALYSIS</span>
+          </h2>
+          
+          <div className="ink-segmented ui-text" style={{ marginBottom: "24px" }}>
+            <div
+              className={`ink-segment ${activeChartTab === "fasting" ? "active" : ""}`}
+              onClick={() => setActiveChartTab("fasting")}
+            >
+              {t("chartFasting")}
             </div>
-            <div style={{ minHeight: "220px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {renderStatsChart()}
+            <div
+              className={`ink-segment ${activeChartTab === "period" ? "active" : ""}`}
+              onClick={() => setActiveChartTab("period")}
+            >
+              {t("chartPeriod")}
+            </div>
+            <div
+              className={`ink-segment ${activeChartTab === "bowel" ? "active" : ""}`}
+              onClick={() => setActiveChartTab("bowel")}
+            >
+              {t("chartBowel")}
+            </div>
+            <div
+              className={`ink-segment ${activeChartTab === "weight" ? "active" : ""}`}
+              onClick={() => setActiveChartTab("weight")}
+            >
+              {t("chartWeight")}
             </div>
           </div>
+
+          <div style={{ minHeight: "220px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            {renderStatsChart()}
+          </div>
         </div>
-      </section>
+      </main>
 
       {/* 8. Settings Modal */}
       {showSettings && (
         <div className="modal-overlay" style={{ zIndex: 100 }}>
-          <div className="modal-card" style={{ width: "min(440px, 94vw)" }}>
-            <div className="modal-header">
-              <h2 className="modal-title">{t("settingsTitle")}</h2>
-              <button className="modal-close" onClick={() => setShowSettings(false)}>
+          <div className="modal-card dark-glass-shell" style={{ width: "min(440px, 94vw)", border: "1px solid rgba(255,255,255,0.1)", padding: "20px" }}>
+            <div className="modal-header" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)", paddingBottom: "12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h2 className="modal-title" style={{ color: "#fff", fontFamily: "var(--font-content)", margin: 0, fontSize: "20px" }}>{t("settingsTitle")}</h2>
+              <button className="modal-close" onClick={() => setShowSettings(false)} style={{ background: "none", border: "none", color: "#fff", fontSize: "24px", cursor: "pointer" }}>
                 &times;
               </button>
             </div>
             <form onSubmit={handleSaveSettings}>
-              <div className="modal-body">
+              <div className="modal-body" style={{ color: "#fff", padding: "16px 0" }}>
                 {/* Language selection */}
-                <div className="form-group">
-                  <label className="form-label">{t("settingsLang")}</label>
+                <div className="form-group" style={{ marginBottom: "16px" }}>
+                  <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("settingsLang")}</label>
                   <select
                     className="form-select"
                     value={lang}
@@ -2045,28 +2038,30 @@ export default function FitMeDashboard() {
                       setLang(val);
                       localStorage.setItem("fitme_lang", val);
                     }}
+                    style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                   >
-                    <option value="en">English 🇬🇧</option>
-                    <option value="zh">简体中文 🇨🇳</option>
-                    <option value="ja">日本語 🇯🇵</option>
+                    <option value="en" style={{ background: "#222" }}>English 🇬🇧</option>
+                    <option value="zh" style={{ background: "#222" }}>简体中文 🇨🇳</option>
+                    <option value="ja" style={{ background: "#222" }}>日本語 🇯🇵</option>
                   </select>
                 </div>
 
                 {/* Profile Edit fields */}
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">{t("onboardSex")}</label>
+                <div className="form-row" style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardSex")}</label>
                     <select
                       className="form-select"
                       value={settingsSex}
                       onChange={(e) => setSettingsSex(e.target.value)}
+                      style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                     >
-                      <option value="male">{t("onboardMale")} ♂</option>
-                      <option value="female">{t("onboardFemale")} ♀</option>
+                      <option value="male" style={{ background: "#222" }}>{t("onboardMale")} ♂</option>
+                      <option value="female" style={{ background: "#222" }}>{t("onboardFemale")} ♀</option>
                     </select>
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">{t("onboardAge")}</label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardAge")}</label>
                     <input
                       type="number"
                       required
@@ -2075,13 +2070,14 @@ export default function FitMeDashboard() {
                       className="form-input"
                       value={settingsAge}
                       onChange={(e) => setSettingsAge(e.target.value)}
+                      style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                     />
                   </div>
                 </div>
 
-                <div className="form-row">
-                  <div className="form-group">
-                    <label className="form-label">{t("onboardHeight")}</label>
+                <div className="form-row" style={{ display: "flex", gap: "12px" }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardHeight")}</label>
                     <input
                       type="number"
                       required
@@ -2090,10 +2086,11 @@ export default function FitMeDashboard() {
                       className="form-input"
                       value={settingsAge === "" ? "" : settingsHeight}
                       onChange={(e) => setSettingsHeight(e.target.value)}
+                      style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">{t("onboardTarget")}</label>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px" }}>{t("onboardTarget")}</label>
                     <input
                       type="number"
                       min="10"
@@ -2102,20 +2099,25 @@ export default function FitMeDashboard() {
                       placeholder={t("onboardTargetPlaceholder")}
                       value={settingsTargetWeight}
                       onChange={(e) => setSettingsTargetWeight(e.target.value)}
+                      style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.1)", color: "#fff", border: "1px solid rgba(255,255,255,0.2)", borderRadius: "6px" }}
                     />
                   </div>
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer" style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "12px", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  style={{ padding: "8px 16px", background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)", color: "#fff", borderRadius: "6px", cursor: "pointer" }}
                   onClick={() => setShowSettings(false)}
                   disabled={isVitalsSaving}
                 >
                   {t("settingsClose")}
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={isVitalsSaving}>
+                <button 
+                  type="submit" 
+                  style={{ padding: "8px 16px", background: "var(--sk-oil)", border: "none", color: "#fff", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}
+                  disabled={isVitalsSaving}
+                >
                   {isVitalsSaving ? t("fastSaving") : t("settingsSaveProfile")}
                 </button>
               </div>
@@ -2123,6 +2125,6 @@ export default function FitMeDashboard() {
           </div>
         </div>
       )}
-    </main>
+    </div>
   );
 }

@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FitMe - Skeuomorphic Prototype (The Physics Edition)</title>
+  <style>
+    /* 
+      ========================================================
+      THE PHYSICAL LAWS (Global Variables)
+      ========================================================
+    */
+    @import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap');
+
+    :root {
+      /* Color Palette */
+      --sk-paper: #F4F1EB; /* 带极弱噪点的哑光白，用于主内容区 */
+      --sk-ink: #1A1A18;   /* 极致深灰，替代纯黑 */
+      --sk-oil: #D98A2C;   /* 琥珀色，系统唯一的“生命力”颜色 */
+      --sk-mech: #3E3C38;  /* 深古铜灰色，机械件 */
+
+      /* Typography */
+      --font-content: 'EB Garamond', 'Noto Serif SC', 'Source Han Serif', serif;
+      --font-mono: 'JetBrains Mono', monospace;
+      --font-ui: 'Inter', sans-serif;
+
+      /* Spacing & Line Height */
+      --line-height-base: 1.6;
+    }
+
+    /* 
+      ========================================================
+      BASE MATERIALS
+      ========================================================
+    */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #111; /* Dark desk environment to contrast the heavy paper */
+      background-image: radial-gradient(circle at 50% 0%, #222, #000);
+      display: flex;
+      justify-content: center;
+      min-height: 100vh;
+      color: var(--sk-ink);
+      line-height: var(--line-height-base);
+    }
+
+    /* Heavyweight Paper (主内容区) */
+    .heavy-paper {
+      background-color: var(--sk-paper);
+      background-image: 
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.04'/%3E%3C/svg%3E");
+      box-shadow: 
+        0 20px 40px rgba(0,0,0,0.6),
+        inset 0 0 60px rgba(0,0,0,0.03); /* Slight vignette to simulate paper thickness */
+      border: 1px solid rgba(0,0,0,0.05);
+      border-radius: 4px; /* Real paper has sharpish but slightly dull corners */
+    }
+
+    /* Dark Glass Shell */
+    .dark-glass-shell {
+      background: rgba(30, 30, 30, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: 
+        0 30px 60px rgba(0,0,0,0.8),
+        inset 0 1px 1px rgba(255,255,255,0.1);
+      border-radius: 16px;
+    }
+
+    /* High-Damping Mechanical Parts */
+    .mech-part {
+      background-color: var(--sk-mech);
+      background-image: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0.2) 100%);
+      border: 1px solid #2a2825;
+      box-shadow: 
+        inset 0 1px 1px rgba(255,255,255,0.15),
+        0 4px 6px rgba(0,0,0,0.4),
+        0 1px 2px rgba(0,0,0,0.6);
+      color: #d0c8b8;
+    }
+
+    /* Amber / Oil Lights & Accents */
+    .oil-accent {
+      color: var(--sk-oil);
+      text-shadow: 0 0 8px rgba(217, 138, 44, 0.4);
+    }
+    .oil-glow {
+      box-shadow: 0 0 12px rgba(217, 138, 44, 0.4);
+    }
+
+    /* 
+      ========================================================
+      LAYOUT & COMPONENTS
+      ========================================================
+    */
+    .device-container {
+      width: 100%;
+      max-width: 480px;
+      margin: 40px 0;
+      position: relative;
+      padding: 12px;
+    }
+
+    .canvas {
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 32px 24px;
+      position: relative;
+    }
+
+    /* UI Shell Typography (Inter) */
+    .ui-text {
+      font-family: var(--font-ui);
+      font-size: 12px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: #666; /* Faded ink */
+    }
+
+    /* Content Typography (EB Garamond) */
+    .content-text {
+      font-family: var(--font-content);
+      color: var(--sk-ink);
+    }
+
+    /* Data/Code Typography (JetBrains Mono) */
+    .data-text {
+      font-family: var(--font-mono);
+      font-size: 24px;
+      letter-spacing: -0.5px;
+    }
+
+    /* Header */
+    .header {
+      margin-bottom: 40px;
+      border-bottom: 2px solid var(--sk-ink);
+      padding-bottom: 16px;
+    }
+    .header h1 {
+      margin: 0;
+      font-size: 32px;
+      font-weight: 600;
+    }
+    .header p {
+      margin: 8px 0 0 0;
+      font-size: 14px;
+      font-style: italic;
+    }
+
+    /* Brass / Mechanism Stopwatch */
+    .mechanical-timer {
+      background: var(--sk-mech);
+      border-radius: 8px;
+      padding: 24px;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+      /* Heavy drop shadow and inset highlight for thick metal block */
+      box-shadow: 
+        inset 0 2px 2px rgba(255,255,255,0.1),
+        inset 0 -2px 4px rgba(0,0,0,0.5),
+        0 10px 20px rgba(0,0,0,0.4);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 1px solid #222;
+    }
+
+    /* Amber Glass Display */
+    .display-screen {
+      background-color: #1a1a1a;
+      border: 2px solid #000;
+      border-radius: 4px;
+      padding: 16px 32px;
+      box-shadow: inset 0 2px 10px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.1);
+      color: var(--sk-oil);
+      text-shadow: 0 0 12px rgba(217, 138, 44, 0.6);
+      margin-bottom: 20px;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    /* Heavy Mechanical Switch */
+    .heavy-switch {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(to bottom, #4a4843, var(--sk-mech));
+      border: 1px solid #1a1a1a;
+      border-radius: 6px;
+      color: #f0f0f0;
+      font-family: var(--font-ui);
+      font-weight: 800;
+      font-size: 14px;
+      letter-spacing: 2px;
+      box-shadow: 
+        inset 0 2px 2px rgba(255,255,255,0.15),
+        0 6px 0 #2a2825,
+        0 8px 10px rgba(0,0,0,0.5);
+      cursor: pointer;
+      transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    .heavy-switch:active {
+      transform: translateY(6px);
+      box-shadow: 
+        inset 0 2px 2px rgba(0,0,0,0.2),
+        0 0 0 #2a2825,
+        0 2px 4px rgba(0,0,0,0.4);
+    }
+    .heavy-switch.active-state {
+      color: var(--sk-oil);
+      text-shadow: 0 0 8px rgba(217, 138, 44, 0.4);
+    }
+
+    /* Content Cards (Ink on Paper) */
+    .ink-card {
+      border: 1px solid rgba(26, 26, 24, 0.2);
+      padding: 20px;
+      margin-bottom: 24px;
+      position: relative;
+    }
+    /* Ink stamped corner */
+    .ink-card::before {
+      content: '';
+      position: absolute;
+      top: -1px; left: -1px;
+      width: 8px; height: 8px;
+      border-top: 2px solid var(--sk-ink);
+      border-left: 2px solid var(--sk-ink);
+    }
+
+    .card-title {
+      font-size: 16px;
+      margin: 0 0 16px 0;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+    }
+
+    .card-title .ui-text {
+      font-size: 10px;
+    }
+
+    /* Mechanical Dials inside Paper (Cutout effect) */
+    .dial-cutout {
+      background: #e8e5de;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.15);
+      border-radius: 4px;
+      padding: 8px 16px;
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid rgba(255,255,255,0.5);
+    }
+    .dial-value {
+      color: var(--sk-ink);
+      font-weight: 700;
+    }
+
+    /* Brass / Mech small button */
+    .mech-btn-small {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: linear-gradient(to bottom, #5a5752, var(--sk-mech));
+      border: 1px solid #222;
+      box-shadow: 
+        inset 0 1px 1px rgba(255,255,255,0.2),
+        0 3px 0 #2a2825,
+        0 4px 6px rgba(0,0,0,0.3);
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+    }
+    .mech-btn-small:active {
+      transform: translateY(3px);
+      box-shadow: 
+        inset 0 2px 4px rgba(0,0,0,0.3),
+        0 0 0 #2a2825,
+        0 1px 2px rgba(0,0,0,0.3);
+    }
+
+    .row {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    
+    /* Segmented switch (Ink style) */
+    .ink-segmented {
+      display: flex;
+      border: 1px solid var(--sk-ink);
+      border-radius: 2px;
+    }
+    .ink-segment {
+      flex: 1;
+      text-align: center;
+      padding: 6px 0;
+      font-size: 12px;
+      cursor: pointer;
+      border-right: 1px solid var(--sk-ink);
+    }
+    .ink-segment:last-child {
+      border-right: none;
+    }
+    .ink-segment.active {
+      background-color: var(--sk-ink);
+      color: var(--sk-paper);
+    }
+
+    /* Grid Paper Chart */
+    .grid-paper {
+      background-color: transparent;
+      background-image: 
+        linear-gradient(rgba(26, 26, 24, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(26, 26, 24, 0.08) 1px, transparent 1px);
+      background-size: 20px 20px;
+      border: 1px solid rgba(26, 26, 24, 0.2);
+      padding: 16px 8px 8px 8px;
+      position: relative;
+    }
+    .x-axis {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding: 0 10px;
+      font-size: 9px;
+      color: var(--sk-mech);
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="device-container dark-glass-shell">
+    <div class="canvas heavy-paper">
+      
+      <div class="header">
+        <h1 class="content-text">FitMe Logbook</h1>
+        <p class="content-text">Vol. 1 &mdash; 2026-07-09</p>
+      </div>
+
+      <!-- Mechanical Fasting Timer -->
+      <div class="mechanical-timer">
+        <div class="ui-text" style="margin-bottom: 12px; color: #888;">System Status: <span class="oil-accent">ACTIVE</span></div>
+        <div class="display-screen data-text">
+          12:45:09
+        </div>
+        <button class="heavy-switch active-state">
+          ENGAGE BREAKFAST
+        </button>
+      </div>
+
+      <!-- Vitals: Ink on Paper -->
+      <div class="ink-card">
+        <h2 class="card-title content-text">
+          Menstrual Cycle
+          <span class="ui-text">FLOW RATE</span>
+        </h2>
+        <div class="ink-segmented ui-text">
+          <div class="ink-segment">None</div>
+          <div class="ink-segment">Light</div>
+          <div class="ink-segment active">Medium</div>
+          <div class="ink-segment">Heavy</div>
+        </div>
+      </div>
+
+      <div class="ink-card">
+        <h2 class="card-title content-text">
+          Bowel Movements
+          <span class="ui-text">COUNT</span>
+        </h2>
+        <div class="row">
+          <div class="dial-cutout data-text dial-value">02</div>
+          <div class="mech-btn-small">+</div>
+        </div>
+      </div>
+
+      <div class="ink-card">
+        <h2 class="card-title content-text">
+          Weight Measurement
+          <span class="ui-text">KILOGRAMS</span>
+        </h2>
+        <div class="row">
+          <div class="dial-cutout data-text dial-value">57.0</div>
+          <div class="mech-btn-small">✎</div>
+        </div>
+      </div>
+
+      <!-- Statistics Chart: Ink on Grid Paper -->
+      <div class="ink-card chart-section">
+        <h2 class="card-title content-text">
+          Data Analytics
+          <span class="ui-text">7-DAY TREND</span>
+        </h2>
+        
+        <!-- Filter Tabs -->
+        <div class="ink-segmented ui-text" style="margin-bottom: 24px;">
+          <div class="ink-segment active">Fasting</div>
+          <div class="ink-segment">Period</div>
+          <div class="ink-segment">Bowel</div>
+          <div class="ink-segment">Weight</div>
+        </div>
+
+        <!-- Grid Paper Chart Area -->
+        <div class="grid-paper">
+          <svg viewBox="0 0 400 150" width="100%" height="150" style="overflow: visible;">
+            <!-- Data Line (Ink) -->
+            <polyline 
+              points="10,130 60,110 110,60 160,80 210,30 260,50 310,20 360,40" 
+              fill="none" 
+              stroke="var(--sk-ink)" 
+              stroke-width="2" 
+              stroke-linejoin="round" 
+              stroke-linecap="round" 
+            />
+            <!-- Target Line (Dashed Mechanism color) -->
+            <line x1="0" y1="60" x2="400" y2="60" stroke="var(--sk-mech)" stroke-width="1.5" stroke-dasharray="4 4" opacity="0.6" />
+            <text x="370" y="55" class="data-text" style="font-size: 10px; fill: var(--sk-mech);">GOAL</text>
+            
+            <!-- Data Points (Paper filled, Ink border, Amber highlight) -->
+            <circle cx="10" cy="130" r="4" fill="var(--sk-paper)" stroke="var(--sk-ink)" stroke-width="2"/>
+            <circle cx="60" cy="110" r="4" fill="var(--sk-paper)" stroke="var(--sk-ink)" stroke-width="2"/>
+            <circle cx="110" cy="60" r="4" fill="var(--sk-paper)" stroke="var(--sk-ink)" stroke-width="2"/>
+            <circle cx="160" cy="80" r="4" fill="var(--sk-paper)" stroke="var(--sk-ink)" stroke-width="2"/>
+            <!-- Highlighted Data Point -->
+            <circle cx="210" cy="30" r="5" fill="var(--sk-oil)" stroke="var(--sk-ink)" stroke-width="2" class="oil-glow"/>
+            <text x="210" y="15" class="data-text" style="font-size: 12px; fill: var(--sk-oil); text-anchor: middle;">18h</text>
+            
+            <circle cx="260" cy="50" r="4" fill="var(--sk-paper)" stroke="var(--sk-ink)" stroke-width="2"/>
+            <circle cx="310" cy="20" r="4" fill="var(--sk-paper)" stroke="var(--sk-ink)" stroke-width="2"/>
+            <circle cx="360" cy="40" r="4" fill="var(--sk-paper)" stroke="var(--sk-ink)" stroke-width="2"/>
+          </svg>
+          
+          <!-- X Axis Labels -->
+          <div class="x-axis ui-text">
+            <span>MON</span>
+            <span>TUE</span>
+            <span>WED</span>
+            <span>THU</span>
+            <span>FRI</span>
+            <span>SAT</span>
+            <span>SUN</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</body>
+</html>
