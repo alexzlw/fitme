@@ -134,7 +134,8 @@ const translations = {
     topTitle: "FitMe Dashboard",
     topEyebrow: "Today: {date}",
     topSubcopy: "Track fasting, weight, period, and bowel movements in one clean view.",
-    topWeightStatus: "Weight: {W}kg · Goal: {G}kg",
+    weightPill: "Weight: {W}kg",
+    goalPill: "Goal: {G}kg",
     fastActive: "🔥 Fasting Active",
     fastIdle: "⏸️ Not Fasting",
     fastElapsed: "Elapsed Time",
@@ -211,7 +212,8 @@ const translations = {
     topTitle: "FitMe 健康看板",
     topEyebrow: "今日：{date}",
     topSubcopy: "专注断食时间、每日体重、经期生理和排便状况的健康追踪管理。",
-    topWeightStatus: "当前体重 {W}kg · 目标 {G}kg",
+    weightPill: "当前: {W}kg",
+    goalPill: "目标: {G}kg",
     fastActive: "🔥 断食燃烧中",
     fastIdle: "⏸️ 尚未断食",
     fastElapsed: "已断食时长",
@@ -288,7 +290,8 @@ const translations = {
     topTitle: "FitMe ダッシュボード",
     topEyebrow: "本日：{date}",
     topSubcopy: "断食时间、体重、生理周期、便通の健康管理ダッシュボード。",
-    topWeightStatus: "現在: {W}kg · 目標: {G}kg",
+    weightPill: "現在: {W}kg",
+    goalPill: "目標: {G}kg",
     fastActive: "🔥 断食実行中",
     fastIdle: "⏸️ 断食していません",
     fastElapsed: "経過時間",
@@ -1785,17 +1788,17 @@ export default function FitMeDashboard() {
         {/* 2. Topbar Header */}
         <div className="header-plate" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", textAlign: "left" }}>
           <div>
-            <p className="ui-text" style={{ margin: 0, fontSize: "10px", color: "var(--sk-oil)", fontWeight: "bold" }}>
+            <h1 style={{ fontFamily: "var(--font-content)", fontSize: "26px", margin: 0, fontWeight: 600, color: "var(--sk-ink)" }}>
               {t("brandSub")}
-            </p>
-            <h1 style={{ fontFamily: "var(--font-content)", fontSize: "22px", margin: "2px 0 0 0", fontWeight: 600, color: "var(--sk-ink)" }}>{t("topTitle")}</h1>
+            </h1>
             <p className="ui-text" style={{ margin: "4px 0 0 0", fontSize: "11px", color: "#6e6b64" }}>
               {t("topEyebrow", { date: latest.date })}
             </p>
           </div>
           <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-            <div className="dial-cutout ui-text" style={{ padding: "6px 10px", fontSize: "10px", background: "#eae7df", fontWeight: "bold", border: "1px solid rgba(26,26,24,0.15)" }}>
-              {t("topWeightStatus", { W: data.profile.latestWeightKg, G: targetWeightLabel })}
+            <div className="dial-cutout ui-text" style={{ padding: "6px 10px", fontSize: "9px", background: "#eae7df", fontWeight: "bold", border: "1px solid rgba(26,26,24,0.15)", display: "flex", flexDirection: "column", gap: "2px", alignItems: "flex-start" }}>
+              <div>{t("weightPill", { W: data.profile.latestWeightKg.toFixed(2) })}</div>
+              <div style={{ color: "var(--sk-mech)" }}>{t("goalPill", { G: targetWeightLabel })}</div>
             </div>
             <button
               type="button"
