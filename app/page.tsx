@@ -509,6 +509,36 @@ export default function FitMeDashboard() {
     return () => clearInterval(interval);
   }, [data?.fastingState?.startTime]);
 
+  const applyFastingDuration = (startMs: number, endMs: number, daysArr: any[]) => {
+    let currentMs = startMs;
+    while (currentMs < endMs) {
+      const dateObj = new Date(currentMs);
+      const dateStr = dateObj.toISOString().slice(0, 10);
+      
+      const nextDayMs = new Date(dateStr + "T00:00:00.000Z").getTime() + 86400000;
+      const chunkEndMs = Math.min(nextDayMs, endMs);
+      const chunkHours = (chunkEndMs - currentMs) / (1000 * 3600);
+      
+      let dayLog = daysArr.find(d => d.date === dateStr);
+      if (!dayLog) {
+        dayLog = {
+          date: dateStr,
+          label: dateStr.slice(5).replace("-", "/"),
+          intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动", exerciseKcal: 0,
+          deficitKcal: Math.round(((data!.profile.sedentaryMaintenanceKcalRange[0] + data!.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
+          note: "", meals: [],
+          fastingDurationHours: 0
+        };
+        daysArr.push(dayLog);
+      }
+      dayLog.fastingDurationHours = (dayLog.fastingDurationHours || 0) + chunkHours;
+      dayLog.fastingDurationHours = Math.min(24, dayLog.fastingDurationHours);
+      
+      currentMs = chunkEndMs;
+    }
+  };
+
   const handleStartFast = async () => {
     if (!data) return;
     setIsFastingSaving(true);
@@ -540,30 +570,9 @@ export default function FitMeDashboard() {
       const activeCode = localStorage.getItem("fitme_passcode") || "";
       const start = new Date(data.fastingState.startTime).getTime();
       const now = new Date().getTime();
-      const durationHours = Math.max(0, (now - start) / (1000 * 3600)); // in hours
       
-      const todayStr = new Date().toISOString().slice(0, 10);
       const days = [...(data.days || [])];
-      let todayLog = days.find(d => d.date === todayStr);
-      
-      if (!todayLog) {
-        todayLog = {
-          date: todayStr,
-          label: todayStr.slice(5).replace("-", "/"),
-          intakeKcal: 0,
-          intakeRangeKcal: [0, 0],
-          proteinRangeG: [0, 0],
-          exerciseLabel: "未记录运动",
-          exerciseKcal: 0,
-          deficitKcal: Math.round(((data.profile.sedentaryMaintenanceKcalRange[0] + data.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
-          note: "",
-          meals: [],
-          fastingDurationHours: durationHours
-        };
-        days.push(todayLog);
-      } else {
-        todayLog.fastingDurationHours = (todayLog.fastingDurationHours || 0) + durationHours;
-      }
+      applyFastingDuration(start, now, days);
       
       const updatedData: FitMeData = {
         ...data,
@@ -636,8 +645,7 @@ export default function FitMeDashboard() {
       if (!succeeded && updatedData.fastingState?.startTime) {
         const start = new Date(updatedData.fastingState.startTime).getTime();
         const now = new Date().getTime();
-        const durationHours = Math.max(0, (now - start) / (1000 * 3600));
-        todayLog.fastingDurationHours = (todayLog.fastingDurationHours || 0) + durationHours;
+        applyFastingDuration(start, now, updatedData.days!);
         updatedData.fastingState = { startTime: null };
       }
 
