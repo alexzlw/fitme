@@ -1,3 +1,3 @@
 # Workflow Rules
-- **Always Discuss Before Coding**: Never modify codebase files or execute code changes without discussing and agreeing on a plan or prototype with the user first.
+- **Always Discuss Before Coding**: Under ANY circumstances (including answering questions, responding to user feedback, or fixing obvious bugs), NEVER modify codebase files, database records, or execute code changes directly. You MUST first discuss the root cause, propose a clear implementation plan or prototype, and obtain explicit agreement from the user before starting any actual modifications.
 - **Auto-Push After Agreement**: Once a plan is agreed upon and the code changes are implemented and verified locally, automatically commit and push the changes (e.g. `git push`) to the remote repository without asking the user for confirmation.

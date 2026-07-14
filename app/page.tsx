@@ -199,6 +199,14 @@ const translations = {
     chartPeriodLabel1: "Light",
     chartPeriodLabel2: "Medium",
     chartPeriodLabel3: "Heavy",
+    retroTitle: "Retroactive Log",
+    retroFasting: "Fasting",
+    retroBowel: "Bowel",
+    retroDate: "Date",
+    retroStart: "Start",
+    retroEnd: "End",
+    retroTime: "Time",
+    retroSubmit: "Save Log",
     settingsButton: "⚙️ Settings",
     settingsTitle: "Settings",
     settingsLang: "Language",
@@ -286,6 +294,14 @@ const translations = {
     chartPeriodLabel1: "偏少",
     chartPeriodLabel2: "中等",
     chartPeriodLabel3: "偏多",
+    retroTitle: "漏打卡补签",
+    retroFasting: "断食记录",
+    retroBowel: "排便记录",
+    retroDate: "补签日期",
+    retroStart: "开始时间",
+    retroEnd: "结束时间",
+    retroTime: "打卡时间",
+    retroSubmit: "确认补签",
     settingsButton: "⚙️ 设置",
     settingsTitle: "设置",
     settingsLang: "语言",
@@ -373,6 +389,14 @@ const translations = {
     chartPeriodLabel1: "少量",
     chartPeriodLabel2: "ふつう",
     chartPeriodLabel3: "多量",
+    retroTitle: "記録の追加",
+    retroFasting: "断食記録",
+    retroBowel: "便通記録",
+    retroDate: "日付",
+    retroStart: "開始時間",
+    retroEnd: "終了時間",
+    retroTime: "時間",
+    retroSubmit: "保存する",
     settingsButton: "⚙️ 設定",
     settingsTitle: "設定",
     settingsLang: "言語",
@@ -398,6 +422,19 @@ export default function FitMeDashboard() {
   const [submitting, setSubmitting] = useState(false);
   const [isHungerModalOpen, setIsHungerModalOpen] = useState(false);
   const [isHungerSaving, setIsHungerSaving] = useState(false);
+
+  // Retroactive Logging State
+  const [isRetroModalOpen, setIsRetroModalOpen] = useState(false);
+  const [retroType, setRetroType] = useState<"fasting" | "bowel">("fasting");
+  const [retroDate, setRetroDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [retroStartTime, setRetroStartTime] = useState("20:00");
+  const [retroEndTime, setRetroEndTime] = useState("12:00");
+  const [retroBowelTime, setRetroBowelTime] = useState("08:00");
+  const [isRetroSaving, setIsRetroSaving] = useState(false);
 
   // Onboarding setup state
   const [setupSex, setSetupSex] = useState("male");
@@ -659,9 +696,65 @@ export default function FitMeDashboard() {
       setData(updatedData);
       setIsHungerModalOpen(false);
     } catch (e: any) {
-      alert("Error saving hunger result: " + e.message);
+      alert("记录失败: " + e.message);
     } finally {
       setIsHungerSaving(false);
+    }
+  };
+
+  const handleRetroSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!data) return;
+    setIsRetroSaving(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const days = [...(data.days || [])];
+      
+      let targetDay = days.find(d => d.date === retroDate);
+      if (!targetDay) {
+        targetDay = {
+          date: retroDate,
+          label: retroDate.slice(5).replace("-", "/"),
+          intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动", exerciseKcal: 0,
+          deficitKcal: Math.round(((data.profile.sedentaryMaintenanceKcalRange[0] + data.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
+          note: "", meals: [],
+          fastingDurationHours: 0
+        };
+        days.push(targetDay);
+      }
+
+      if (retroType === "bowel") {
+        const newLog: BowelMovementLog = {
+          id: Math.random().toString(36).substr(2, 9),
+          time: retroBowelTime,
+          type: "normal"
+        };
+        targetDay.bowelMovements = [...(targetDay.bowelMovements || []), newLog];
+      } else if (retroType === "fasting") {
+        const startMs = new Date(`${retroDate}T${retroStartTime}:00`).getTime();
+        let endMs = new Date(`${retroDate}T${retroEndTime}:00`).getTime();
+        if (endMs <= startMs) {
+          endMs += 86400000;
+        }
+        applyFastingDuration(startMs, endMs, days);
+      }
+
+      const updatedData: FitMeData = { ...data, days };
+      
+      const res = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!res.ok) throw new Error(await res.text());
+      
+      setData(updatedData);
+      setIsRetroModalOpen(false);
+    } catch (e: any) {
+      alert("补签失败: " + e.message);
+    } finally {
+      setIsRetroSaving(false);
     }
   };
 
@@ -2039,6 +2132,14 @@ export default function FitMeDashboard() {
               type="button"
               className="mech-btn-small"
               style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}
+              onClick={() => setIsRetroModalOpen(true)}
+            >
+              📝
+            </button>
+            <button
+              type="button"
+              className="mech-btn-small"
+              style={{ width: "32px", height: "32px", display: "flex", alignItems: "center", justifyContent: "center" }}
               onClick={handleOpenSettings}
             >
               ⚙️
@@ -2446,6 +2547,98 @@ export default function FitMeDashboard() {
                 {isHungerSaving ? t("fastSaving") : t("hungerResistFail")}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 9. Retroactive Log Modal */}
+      {isRetroModalOpen && (
+        <div className="modal-overlay" style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.85)", backdropFilter: "blur(4px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: "16px" }}>
+          <div className="modal-content heavy-paper dark-glass-shell" style={{ width: "100%", maxWidth: "360px", background: "#F4F1EB", padding: "24px", borderRadius: "8px", border: "2px solid var(--sk-ink)", boxShadow: "0 12px 24px rgba(0,0,0,0.5)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", borderBottom: "1px solid rgba(26,26,24,0.15)", paddingBottom: "12px" }}>
+              <h3 style={{ margin: 0, fontFamily: "var(--font-content)", color: "var(--sk-ink)", fontSize: "20px", fontWeight: 600 }}>{t("retroTitle")}</h3>
+              <button 
+                onClick={() => setIsRetroModalOpen(false)}
+                style={{ background: "transparent", border: "none", color: "var(--sk-ink)", fontSize: "20px", cursor: "pointer", opacity: 0.5 }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <form onSubmit={handleRetroSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+              <div className="form-group">
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--sk-mech)", fontWeight: "bold" }}>Type</label>
+                <select
+                  className="form-select"
+                  value={retroType}
+                  onChange={e => setRetroType(e.target.value as "fasting" | "bowel")}
+                  style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
+                >
+                  <option value="fasting">{t("retroFasting")}</option>
+                  <option value="bowel">{t("retroBowel")}</option>
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--sk-mech)", fontWeight: "bold" }}>{t("retroDate")}</label>
+                <input
+                  type="date"
+                  required
+                  className="form-input"
+                  value={retroDate}
+                  onChange={e => setRetroDate(e.target.value)}
+                  style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
+                />
+              </div>
+
+              {retroType === "fasting" ? (
+                <div style={{ display: "flex", gap: "12px" }}>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--sk-mech)", fontWeight: "bold" }}>{t("retroStart")}</label>
+                    <input
+                      type="time"
+                      required
+                      className="form-input"
+                      value={retroStartTime}
+                      onChange={e => setRetroStartTime(e.target.value)}
+                      style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
+                    />
+                  </div>
+                  <div className="form-group" style={{ flex: 1 }}>
+                    <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--sk-mech)", fontWeight: "bold" }}>{t("retroEnd")}</label>
+                    <input
+                      type="time"
+                      required
+                      className="form-input"
+                      value={retroEndTime}
+                      onChange={e => setRetroEndTime(e.target.value)}
+                      style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="form-group">
+                  <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--sk-mech)", fontWeight: "bold" }}>{t("retroTime")}</label>
+                  <input
+                    type="time"
+                    required
+                    className="form-input"
+                    value={retroBowelTime}
+                    onChange={e => setRetroBowelTime(e.target.value)}
+                    style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
+                  />
+                </div>
+              )}
+
+              <button 
+                type="submit" 
+                className="mech-btn"
+                disabled={isRetroSaving}
+                style={{ width: "100%", padding: "12px", marginTop: "8px", background: "var(--sk-ink)", color: "var(--sk-paper)", border: "none", borderRadius: "6px", fontWeight: "bold", cursor: "pointer" }}
+              >
+                {isRetroSaving ? t("fastSaving") : t("retroSubmit")}
+              </button>
+            </form>
           </div>
         </div>
       )}
