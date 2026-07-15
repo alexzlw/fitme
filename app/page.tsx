@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect, useRef } from "react";
 
+const getLocalDateStr = (date = new Date()) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+};
+
 interface Meal {
   id: string;
   type: string;
@@ -429,7 +436,7 @@ export default function FitMeDashboard() {
   const [retroDate, setRetroDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
-    return d.toISOString().slice(0, 10);
+    return getLocalDateStr(d);
   });
   const [retroStartTime, setRetroStartTime] = useState("20:00");
   const [retroEndTime, setRetroEndTime] = useState("12:00");
@@ -511,7 +518,7 @@ export default function FitMeDashboard() {
     }
     
     // Set default form date to today
-    setFormDate(new Date().toISOString().slice(0, 10));
+    setFormDate(getLocalDateStr());
 
     // Load cached language (default to en)
     const cachedLang = localStorage.getItem("fitme_lang") as "en" | "zh" | "ja" | null;
@@ -550,7 +557,7 @@ export default function FitMeDashboard() {
     let currentMs = startMs;
     while (currentMs < endMs) {
       const dateObj = new Date(currentMs);
-      const dateStr = dateObj.toISOString().slice(0, 10);
+      const dateStr = getLocalDateStr(dateObj);
       
       const nextDayMs = new Date(dateStr + "T00:00:00.000Z").getTime() + 86400000;
       const chunkEndMs = Math.min(nextDayMs, endMs);
@@ -637,7 +644,7 @@ export default function FitMeDashboard() {
     setIsHungerSaving(true);
     try {
       const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = getLocalDateStr();
       const days = [...(data.days || [])];
       let todayLog = days.find(d => d.date === todayStr);
       
@@ -818,7 +825,7 @@ export default function FitMeDashboard() {
     let current = new Date(dateStr);
     
     while (true) {
-      const currentStr = current.toISOString().slice(0, 10);
+      const currentStr = getLocalDateStr(current);
       const log = data.days.find(d => d.date === currentStr);
       if (log && log.period) {
         count++;
@@ -1511,8 +1518,8 @@ export default function FitMeDashboard() {
         ...data,
         profile,
         targets,
-        updatedAt: new Date().toISOString().slice(0, 10),
-        periodLabel: new Date().toISOString().slice(0, 10),
+        updatedAt: getLocalDateStr(),
+        periodLabel: getLocalDateStr(),
       };
 
       // 3. Save to Supabase
@@ -2015,7 +2022,7 @@ export default function FitMeDashboard() {
   };
 
   const days = data.days || [];
-  const latestDateStr = new Date().toISOString().slice(0, 10);
+  const latestDateStr = getLocalDateStr();
   const latest = days.find(d => d.date === latestDateStr) || {
     date: latestDateStr,
     label: latestDateStr.slice(5).replace("-", "/"),

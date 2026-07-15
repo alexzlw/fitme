@@ -1,0 +1,368 @@
+{
+  "copy": {
+    "summary": [
+      "今天目前已摄入约 761 kcal。",
+      "蛋白质目前约 0-0g。",
+      "营养维度还不完整，继续记录后会补齐。",
+      "继续按当天目标调整下一餐。"
+    ],
+    "overview": "今天已记录 761 kcal，蛋白约 0-0g。"
+  },
+  "days": [
+    {
+      "date": "2026-07-05",
+      "note": "午餐：鸡肉三明治；晚餐：中餐",
+      "label": "07/05",
+      "meals": [
+        {
+          "id": "2026-07-05-lunch-1783237595185",
+          "kcal": 261,
+          "type": "lunch",
+          "title": "鸡肉三明治",
+          "source": "网页端录入",
+          "kcalRange": [
+            261,
+            261
+          ],
+          "imagePaths": [],
+          "description": "",
+          "proteinRangeG": null
+        },
+        {
+          "id": "2026-07-05-dinner-1783248478437",
+          "kcal": 500,
+          "type": "dinner",
+          "title": "中餐",
+          "source": "网页端录入",
+          "kcalRange": [
+            500,
+            500
+          ],
+          "imagePaths": [],
+          "description": "",
+          "proteinRangeG": null
+        }
+      ],
+      "nutrition": null,
+      "intakeKcal": 761,
+      "deficitKcal": 938,
+      "exerciseKcal": 300,
+      "exerciseLabel": "自行车60分钟",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "intakeRangeKcal": [
+        761,
+        761
+      ],
+      "nutritionAdvice": [],
+      "fastingDurationHours": 18.848491111111112
+    },
+    {
+      "date": "2026-07-06",
+      "note": "",
+      "label": "07/06",
+      "meals": [],
+      "intakeKcal": 0,
+      "deficitKcal": 1399,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 16.32261527777778
+    },
+    {
+      "date": "2026-07-07",
+      "note": "",
+      "label": "07/07",
+      "meals": [],
+      "intakeKcal": 0,
+      "deficitKcal": 1399,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 17.586586944444445
+    },
+    {
+      "date": "2026-07-08",
+      "note": "",
+      "label": "07/08",
+      "meals": [],
+      "intakeKcal": 0,
+      "deficitKcal": 1399,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "bowelMovements": [
+        {
+          "id": "addf1tp",
+          "time": "10:00",
+          "type": "normal"
+        },
+        {
+          "id": "zqw1rk8",
+          "time": "11:00",
+          "type": "normal"
+        }
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 21.74163111111111
+    },
+    {
+      "date": "2026-07-09",
+      "note": "",
+      "label": "07/09",
+      "meals": [],
+      "period": null,
+      "weightKg": 57.25,
+      "intakeKcal": 0,
+      "deficitKcal": 1399,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "hungerAttacks": {
+        "events": [
+          {
+            "succeeded": true,
+            "timestamp": "2026-07-09T14:46:56.658Z"
+          }
+        ],
+        "failed": 0,
+        "succeeded": 1
+      },
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "bowelMovements": [
+        {
+          "id": "kb0dc0k",
+          "time": "10:28",
+          "type": "normal"
+        }
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 24
+    },
+    {
+      "date": "2026-07-10",
+      "note": "",
+      "label": "07/10",
+      "meals": [],
+      "intakeKcal": 0,
+      "deficitKcal": 1399,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 19.982409444444443
+    },
+    {
+      "date": "2026-07-11",
+      "note": "",
+      "label": "07/11",
+      "meals": [],
+      "period": {
+        "flow": "heavy"
+      },
+      "weightKg": 56.2,
+      "intakeKcal": 0,
+      "deficitKcal": 0,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 18.406523611111112
+    },
+    {
+      "date": "2026-07-12",
+      "note": "",
+      "label": "07/12",
+      "meals": [],
+      "intakeKcal": 0,
+      "deficitKcal": 0,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "bowelMovements": [
+        {
+          "id": "y0eym62",
+          "time": "08:56",
+          "type": "normal"
+        }
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 14.269958055555556
+    },
+    {
+      "date": "2026-07-13",
+      "note": "",
+      "label": "07/13",
+      "meals": [],
+      "intakeKcal": 0,
+      "deficitKcal": 1399,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "bowelMovements": [
+        {
+          "id": "574lqrp38",
+          "time": "10:00",
+          "type": "normal"
+        }
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 23.999483333333334
+    },
+    {
+      "date": "2026-07-14",
+      "note": "",
+      "label": "07/14",
+      "meals": [],
+      "period": {
+        "flow": "heavy"
+      },
+      "intakeKcal": 0,
+      "deficitKcal": 0,
+      "exerciseKcal": 0,
+      "exerciseLabel": "未记录运动",
+      "proteinRangeG": [
+        0,
+        0
+      ],
+      "bowelMovements": [
+        {
+          "id": "3d9xjpl",
+          "time": "10:52",
+          "type": "normal"
+        },
+        {
+          "id": "qv3gm78",
+          "time": "14:27",
+          "type": "normal"
+        },
+        {
+          "id": "tcgcr0x",
+          "time": "08:06",
+          "type": "normal"
+        }
+      ],
+      "intakeRangeKcal": [
+        0,
+        0
+      ],
+      "fastingDurationHours": 3.014457222222222
+    }
+  ],
+  "stats": {
+    "proteinQualifiedDays": 0
+  },
+  "profile": {
+    "age": 40,
+    "sex": "female",
+    "bmrKcal": 1190,
+    "heightCm": 157,
+    "latestWeightKg": 56.2,
+    "targetWeightRangeKg": [
+      45,
+      45
+    ],
+    "sedentaryMaintenanceKcalRange": [
+      1369,
+      1428
+    ]
+  },
+  "targets": {
+    "nutrition": {
+      "fiberG": [
+        25,
+        35
+      ],
+      "ironMg": [
+        10,
+        15
+      ],
+      "calciumMg": [
+        800,
+        1000
+      ],
+      "vitaminCMg": [
+        100,
+        200
+      ],
+      "potassiumMg": [
+        2000,
+        3500
+      ],
+      "sodiumMgMax": 2000,
+      "vitaminDMcg": [
+        10,
+        20
+      ],
+      "vitaminB12Mcg": [
+        2.4,
+        5
+      ]
+    },
+    "dailyKcalRange": [
+      890,
+      1140
+    ],
+    "dailyProteinRangeG": [
+      86,
+      114
+    ],
+    "proteinCompletionTargetG": 91
+  },
+  "updatedAt": "2026-07-05",
+  "periodLabel": "2026-07-05-2026-07-05",
+  "fastingState": {
+    "startTime": "2026-07-14T03:44:51.408Z"
+  }
+}
