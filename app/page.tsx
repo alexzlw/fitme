@@ -488,6 +488,44 @@ export default function FitMeDashboard() {
   const [settingsHeight, setSettingsHeight] = useState("");
   const [settingsTargetWeight, setSettingsTargetWeight] = useState("");
   
+  const handleDeleteMeal = (dateStr: string, mealId: string) => {
+    mutateData((latest) => {
+      const days = latest.days || [];
+      latest.days = days;
+      const dayLog = days.find(d => d.date === dateStr);
+      if (!dayLog) return latest;
+      
+      dayLog.meals = dayLog.meals.filter(m => m.id !== mealId);
+      
+      const maintenanceAvg = Math.round(
+        (latest.profile.sedentaryMaintenanceKcalRange[0] +
+          latest.profile.sedentaryMaintenanceKcalRange[1]) /
+          2
+      );
+      
+      dayLog.intakeKcal = dayLog.meals.reduce((sum, m) => sum + Number(m.kcal || 0), 0);
+      dayLog.intakeRangeKcal = [
+        dayLog.meals.reduce((sum, m) => sum + Number(m.kcalRange?.[0] ?? m.kcal ?? 0), 0),
+        dayLog.meals.reduce((sum, m) => sum + Number(m.kcalRange?.[1] ?? m.kcal ?? 0), 0)
+      ];
+      
+      const proteinMeals = dayLog.meals.filter(m => m.proteinRangeG);
+      dayLog.proteinRangeG = [
+        proteinMeals.reduce((sum, m) => sum + Number(m.proteinRangeG![0]), 0),
+        proteinMeals.reduce((sum, m) => sum + Number(m.proteinRangeG![1]), 0)
+      ];
+      
+      dayLog.deficitKcal = maintenanceAvg + Number(dayLog.exerciseKcal || 0) - dayLog.intakeKcal;
+      dayLog.note = dayLog.meals.map(m => `${mealLabels[m.type] || "餐食"}：${m.title}`).join("；");
+      
+      dayLog.nutrition = summarizeNutrition(dayLog.meals);
+      dayLog.nutritionConfidence = dayLog.nutrition ? "estimated" : undefined;
+      dayLog.nutritionAdvice = getNutritionAdvice(dayLog.nutrition, latest.targets.nutrition);
+      
+      return latest;
+    });
+  };
+
   // Image Upload state
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -553,7 +591,39 @@ export default function FitMeDashboard() {
     return () => clearInterval(interval);
   }, [data?.fastingState?.startTime]);
 
-  const applyFastingDuration = (startMs: number, endMs: number, daysArr: any[]) => {
+  const mutateData = async (
+    mutationFn: (latestData: FitMeData) => FitMeData | Promise<FitMeData>,
+    setLoadingState?: (state: boolean) => void,
+    onSuccess?: () => void
+  ) => {
+    if (setLoadingState) setLoadingState(true);
+    try {
+      const activeCode = localStorage.getItem("fitme_passcode") || "";
+      const getRes = await fetch("/api/health-data", { headers: { "x-fitme-passcode": activeCode } });
+      if (!getRes.ok) throw new Error("同步最新数据失败: " + await getRes.text());
+      const latestData: FitMeData = await getRes.json();
+      
+      const updatedData = await mutationFn(latestData);
+      
+      const postRes = await fetch("/api/health-data", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
+        body: JSON.stringify(updatedData)
+      });
+      if (!postRes.ok) throw new Error(await postRes.text());
+      
+      setData(updatedData);
+      if (onSuccess) onSuccess();
+    } catch (e: any) {
+      alert("保存失败: " + e.message);
+    } finally {
+      if (setLoadingState) setLoadingState(false);
+    }
+  };
+
+  const applyFastingDuration = (startMs: number, endMs: number, latestData: FitMeData) => {
+    const daysArr = latestData.days || [];
+    latestData.days = daysArr;
     let currentMs = startMs;
     while (currentMs < endMs) {
       const dateObj = new Date(currentMs);
@@ -570,7 +640,7 @@ export default function FitMeDashboard() {
           label: dateStr.slice(5).replace("-", "/"),
           intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
           exerciseLabel: "未记录运动", exerciseKcal: 0,
-          deficitKcal: Math.round(((data!.profile.sedentaryMaintenanceKcalRange[0] + data!.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
+          deficitKcal: Math.round(((latestData.profile.sedentaryMaintenanceKcalRange[0] + latestData.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
           note: "", meals: [],
           fastingDurationHours: 0
         };
@@ -583,83 +653,40 @@ export default function FitMeDashboard() {
     }
   };
 
-  const handleStartFast = async () => {
-    if (!data) return;
-    setIsFastingSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const updatedData: FitMeData = {
-        ...data,
-        fastingState: { startTime: new Date().toISOString() }
-      };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setData(updatedData);
-    } catch (e: any) {
-      alert("开始断食失败: " + e.message);
-    } finally {
-      setIsFastingSaving(false);
-    }
+  const handleStartFast = () => {
+    mutateData((latest) => ({
+      ...latest,
+      fastingState: { startTime: new Date().toISOString() }
+    }), setIsFastingSaving);
   };
 
-  const handleEndFast = async () => {
-    if (!data || !data.fastingState?.startTime) return;
-    setIsFastingSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const start = new Date(data.fastingState.startTime).getTime();
+  const handleEndFast = () => {
+    if (!data?.fastingState?.startTime) return;
+    mutateData((latest) => {
+      if (!latest.fastingState?.startTime) return latest;
+      const start = new Date(latest.fastingState.startTime).getTime();
       const now = new Date().getTime();
-      
-      const days = [...(data.days || [])];
-      applyFastingDuration(start, now, days);
-      
-      const updatedData: FitMeData = {
-        ...data,
-        days,
-        fastingState: { startTime: null }
-      };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      
-      setData(updatedData);
-    } catch (e: any) {
-      alert("结束断食失败: " + e.message);
-    } finally {
-      setIsFastingSaving(false);
-    }
+      applyFastingDuration(start, now, latest);
+      latest.fastingState = { startTime: null };
+      return latest;
+    }, setIsFastingSaving);
   };
 
-  const handleHungerResult = async (succeeded: boolean) => {
-    if (!data) return;
-    setIsHungerSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
+  const handleHungerResult = (succeeded: boolean) => {
+    mutateData((latest) => {
       const todayStr = getLocalDateStr();
-      const days = [...(data.days || [])];
+      const days = latest.days || [];
+      latest.days = days;
       let todayLog = days.find(d => d.date === todayStr);
       
       if (!todayLog) {
         todayLog = {
           date: todayStr,
           label: todayStr.slice(5).replace("-", "/"),
-          intakeKcal: 0,
-          intakeRangeKcal: [0, 0],
-          proteinRangeG: [0, 0],
-          exerciseLabel: "未记录运动",
-          exerciseKcal: 0,
-          deficitKcal: Math.round(((data.profile.sedentaryMaintenanceKcalRange[0] + data.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
-          note: "",
-          meals: [],
+          intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动", exerciseKcal: 0,
+          deficitKcal: Math.round(((latest.profile.sedentaryMaintenanceKcalRange[0] + latest.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
+          note: "", meals: [],
           fastingDurationHours: 0,
           hungerAttacks: { succeeded: 0, failed: 0 }
         };
@@ -684,38 +711,23 @@ export default function FitMeDashboard() {
         succeeded
       });
       
-      let updatedData: FitMeData = { ...data, days };
-      
-      if (!succeeded && updatedData.fastingState?.startTime) {
-        const start = new Date(updatedData.fastingState.startTime).getTime();
+      if (!succeeded && latest.fastingState?.startTime) {
+        const start = new Date(latest.fastingState.startTime).getTime();
         const now = new Date().getTime();
-        applyFastingDuration(start, now, updatedData.days!);
-        updatedData.fastingState = { startTime: null };
+        applyFastingDuration(start, now, latest);
+        latest.fastingState = { startTime: null };
       }
-
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      
-      setData(updatedData);
-      setIsHungerModalOpen(false);
-    } catch (e: any) {
-      alert("记录失败: " + e.message);
-    } finally {
-      setIsHungerSaving(false);
-    }
+      return latest;
+    }, setIsHungerSaving, () => setIsHungerModalOpen(false));
   };
 
-  const handleRetroSubmit = async (e: React.FormEvent) => {
+  const handleRetroSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data) return;
-    setIsRetroSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const days = [...(data.days || [])];
+    if (!retroDate) return;
+    
+    mutateData((latest) => {
+      const days = latest.days || [];
+      latest.days = days;
       
       let targetDay = days.find(d => d.date === retroDate);
       if (!targetDay) {
@@ -724,7 +736,7 @@ export default function FitMeDashboard() {
           label: retroDate.slice(5).replace("-", "/"),
           intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
           exerciseLabel: "未记录运动", exerciseKcal: 0,
-          deficitKcal: Math.round(((data.profile.sedentaryMaintenanceKcalRange[0] + data.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
+          deficitKcal: Math.round(((latest.profile.sedentaryMaintenanceKcalRange[0] + latest.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
           note: "", meals: [],
           fastingDurationHours: 0
         };
@@ -744,25 +756,11 @@ export default function FitMeDashboard() {
         if (endMs <= startMs) {
           endMs += 86400000;
         }
-        applyFastingDuration(startMs, endMs, days);
+        applyFastingDuration(startMs, endMs, latest);
       }
 
-      const updatedData: FitMeData = { ...data, days };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      
-      setData(updatedData);
-      setIsRetroModalOpen(false);
-    } catch (e: any) {
-      alert("补签失败: " + e.message);
-    } finally {
-      setIsRetroSaving(false);
-    }
+      return latest;
+    }, setIsRetroSaving, () => setIsRetroModalOpen(false));
   };
 
   const handleOpenSettings = () => {
@@ -775,48 +773,27 @@ export default function FitMeDashboard() {
     }
   };
 
-  const handleSaveSettings = async (e: React.FormEvent) => {
+  const handleSaveSettings = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data) return;
-    setIsVitalsSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const age = parseInt(settingsAge);
-      const height = parseFloat(settingsHeight);
-      const targetW = parseFloat(settingsTargetWeight);
-      if (isNaN(age) || isNaN(height)) {
-        alert("请输入有效的年龄和身高");
-        return;
-      }
-      
-      const newTarget: [number, number] = isNaN(targetW) ? [data.profile.latestWeightKg - 5, data.profile.latestWeightKg - 5] : [targetW, targetW];
-      
-      const updatedProfile = {
-        ...data.profile,
+    const age = parseInt(settingsAge);
+    const height = parseFloat(settingsHeight);
+    const targetW = parseFloat(settingsTargetWeight);
+    if (isNaN(age) || isNaN(height)) {
+      alert("请输入有效的年龄和身高");
+      return;
+    }
+    
+    mutateData((latest) => {
+      const newTarget: [number, number] = isNaN(targetW) ? [latest.profile.latestWeightKg - 5, latest.profile.latestWeightKg - 5] : [targetW, targetW];
+      latest.profile = {
+        ...latest.profile,
         sex: settingsSex,
         age,
         heightCm: height,
         targetWeightRangeKg: newTarget
       };
-      
-      const updatedData: FitMeData = {
-        ...data,
-        profile: updatedProfile
-      };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setData(updatedData);
-      setShowSettings(false);
-    } catch (e: any) {
-      alert("保存设置失败: " + e.message);
-    } finally {
-      setIsVitalsSaving(false);
-    }
+      return latest;
+    }, setIsVitalsSaving, () => setShowSettings(false));
   };
 
   const calculatePeriodDay = (dateStr: string) => {
@@ -837,58 +814,34 @@ export default function FitMeDashboard() {
     return count > 0 ? count : 1;
   };
 
-  const handleTogglePeriod = async (dateStr: string, flow: "light" | "medium" | "heavy" | null) => {
-    if (!data) return;
-    setIsVitalsSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const days = [...(data.days || [])];
+  const handleTogglePeriod = (dateStr: string, flow: "light" | "medium" | "heavy" | null) => {
+    mutateData((latest) => {
+      const days = latest.days || [];
+      latest.days = days;
       let dayLog = days.find(d => d.date === dateStr);
       
       if (!dayLog) {
         dayLog = {
           date: dateStr,
           label: dateStr.slice(5).replace("-", "/"),
-          intakeKcal: 0,
-          intakeRangeKcal: [0, 0],
-          proteinRangeG: [0, 0],
-          exerciseLabel: "未记录运动",
-          exerciseKcal: 0,
+          intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动", exerciseKcal: 0,
           deficitKcal: 0,
-          note: "",
-          meals: [],
+          note: "", meals: [],
           period: flow ? { flow } : null
         };
         days.push(dayLog);
       } else {
         dayLog.period = flow ? { flow } : null;
       }
-      
-      const updatedData: FitMeData = {
-        ...data,
-        days
-      };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setData(updatedData);
-    } catch (e: any) {
-      alert("更新经期记录失败: " + e.message);
-    } finally {
-      setIsVitalsSaving(false);
-    }
+      return latest;
+    }, setIsVitalsSaving);
   };
 
-  const handleQuickBowelMovement = async (dateStr: string, type: "normal" | "loose" | "constipated" = "normal") => {
-    if (!data) return;
-    setIsVitalsSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const days = [...(data.days || [])];
+  const handleQuickBowelMovement = (dateStr: string, type: "normal" | "loose" | "constipated" = "normal") => {
+    mutateData((latest) => {
+      const days = latest.days || [];
+      latest.days = days;
       let dayLog = days.find(d => d.date === dateStr);
       
       const newLog: BowelMovementLog = {
@@ -901,90 +854,46 @@ export default function FitMeDashboard() {
         dayLog = {
           date: dateStr,
           label: dateStr.slice(5).replace("-", "/"),
-          intakeKcal: 0,
-          intakeRangeKcal: [0, 0],
-          proteinRangeG: [0, 0],
-          exerciseLabel: "未记录运动",
-          exerciseKcal: 0,
+          intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动", exerciseKcal: 0,
           deficitKcal: 0,
-          note: "",
-          meals: [],
+          note: "", meals: [],
           bowelMovements: [newLog]
         };
         days.push(dayLog);
       } else {
         dayLog.bowelMovements = [...(dayLog.bowelMovements || []), newLog];
       }
-      
-      const updatedData: FitMeData = {
-        ...data,
-        days
-      };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setData(updatedData);
-    } catch (e: any) {
-      alert("记录排便失败: " + e.message);
-    } finally {
-      setIsVitalsSaving(false);
-    }
+      return latest;
+    }, setIsVitalsSaving);
   };
 
-  const handleDeleteBowelMovement = async (dateStr: string, itemId: string) => {
-    if (!data) return;
-    setIsVitalsSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const days = [...(data.days || [])];
+  const handleDeleteBowelMovement = (dateStr: string, itemId: string) => {
+    mutateData((latest) => {
+      const days = latest.days || [];
+      latest.days = days;
       const dayLog = days.find(d => d.date === dateStr);
       if (dayLog) {
         dayLog.bowelMovements = (dayLog.bowelMovements || []).filter(item => item.id !== itemId);
       }
-      
-      const updatedData: FitMeData = {
-        ...data,
-        days
-      };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setData(updatedData);
-    } catch (e: any) {
-      alert("删除排便记录失败: " + e.message);
-    } finally {
-      setIsVitalsSaving(false);
-    }
+      return latest;
+    }, setIsVitalsSaving);
   };
 
-  const handleSaveWeight = async (dateStr: string, weight: number) => {
-    if (!data) return;
-    setIsVitalsSaving(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
-      const days = [...(data.days || [])];
+  const handleSaveWeight = (dateStr: string, weight: number) => {
+    mutateData((latest) => {
+      const days = latest.days || [];
+      latest.days = days;
       let dayLog = days.find(d => d.date === dateStr);
       
       if (!dayLog) {
         dayLog = {
           date: dateStr,
           label: dateStr.slice(5).replace("-", "/"),
-          intakeKcal: 0,
-          intakeRangeKcal: [0, 0],
-          proteinRangeG: [0, 0],
-          exerciseLabel: "未记录运动",
-          exerciseKcal: 0,
+          intakeKcal: 0, intakeRangeKcal: [0, 0], proteinRangeG: [0, 0],
+          exerciseLabel: "未记录运动", exerciseKcal: 0,
           deficitKcal: 0,
-          note: "",
-          meals: [],
+          note: "", meals: [],
           weightKg: weight
         };
         days.push(dayLog);
@@ -992,29 +901,9 @@ export default function FitMeDashboard() {
         dayLog.weightKg = weight;
       }
       
-      const updatedProfile = {
-        ...data.profile,
-        latestWeightKg: weight
-      };
-      
-      const updatedData: FitMeData = {
-        ...data,
-        profile: updatedProfile,
-        days
-      };
-      
-      const res = await fetch("/api/health-data", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "x-fitme-passcode": activeCode },
-        body: JSON.stringify(updatedData)
-      });
-      if (!res.ok) throw new Error(await res.text());
-      setData(updatedData);
-    } catch (e: any) {
-      alert("保存体重失败: " + e.message);
-    } finally {
-      setIsVitalsSaving(false);
-    }
+      latest.profile.latestWeightKg = weight;
+      return latest;
+    }, setIsVitalsSaving);
   };
 
   const renderStatsChart = () => {
@@ -1467,13 +1356,10 @@ export default function FitMeDashboard() {
     }
   };
 
-  const handleSetupSubmit = async (e: React.FormEvent) => {
+  const handleSetupSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data) return;
     
-    setSetupLoading(true);
-    try {
-      const activeCode = localStorage.getItem("fitme_passcode") || "";
+    mutateData((latest) => {
       const ageNum = Number(setupAge);
       const heightNum = Number(setupHeight);
       const weightNum = Number(setupWeight);
@@ -1488,7 +1374,7 @@ export default function FitMeDashboard() {
       const dailyProteinRangeG: [number, number] = [Math.round(weightNum * 1.5), Math.round(weightNum * 2.0)];
       const proteinCompletionTargetG = Math.round(weightNum * 1.6);
 
-      const profile: Profile = {
+      latest.profile = {
         sex: setupSex,
         age: ageNum,
         heightCm: heightNum,
@@ -1498,7 +1384,7 @@ export default function FitMeDashboard() {
         sedentaryMaintenanceKcalRange: maintenanceRange
       };
 
-      const targets: Targets = {
+      latest.targets = {
         dailyKcalRange,
         dailyProteinRangeG,
         proteinCompletionTargetG,
@@ -1514,34 +1400,11 @@ export default function FitMeDashboard() {
         }
       };
 
-      const updatedData: FitMeData = {
-        ...data,
-        profile,
-        targets,
-        updatedAt: getLocalDateStr(),
-        periodLabel: getLocalDateStr(),
-      };
+      latest.updatedAt = getLocalDateStr();
+      latest.periodLabel = getLocalDateStr();
 
-      // 3. Save to Supabase
-      const saveRes = await fetch("/api/health-data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-fitme-passcode": activeCode
-        },
-        body: JSON.stringify(updatedData)
-      });
-
-      if (!saveRes.ok) {
-        throw new Error(await saveRes.text());
-      }
-
-      setData(updatedData);
-    } catch (e: any) {
-      alert("初始化档案失败：" + e.message);
-    } finally {
-      setSetupLoading(false);
-    }
+      return latest;
+    }, setSetupLoading);
   };
 
   const handleUnlock = (e: React.FormEvent) => {
@@ -1584,12 +1447,11 @@ export default function FitMeDashboard() {
   };
 
   // Helper calculation logic (mirrors fitme.js engine)
-  const handleSave = async (e: React.FormEvent) => {
+  const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!data) return;
+    if (!formDate) return;
     
-    setSubmitting(true);
-    try {
+    mutateData(async (latest) => {
       const activeCode = localStorage.getItem("fitme_passcode") || "";
       let finalImagePath: string | undefined = undefined;
 
@@ -1615,10 +1477,11 @@ export default function FitMeDashboard() {
       }
 
       // 2. Clone days array and perform calculations
-      const updatedDays = [...data.days];
+      const updatedDays = latest.days || [];
+      latest.days = updatedDays;
       const maintenanceAvg = Math.round(
-        (data.profile.sedentaryMaintenanceKcalRange[0] +
-          data.profile.sedentaryMaintenanceKcalRange[1]) /
+        (latest.profile.sedentaryMaintenanceKcalRange[0] +
+          latest.profile.sedentaryMaintenanceKcalRange[1]) /
           2
       );
 
@@ -1695,59 +1558,37 @@ export default function FitMeDashboard() {
       // Summarize day nutrition
       day.nutrition = summarizeNutrition(day.meals);
       day.nutritionConfidence = day.nutrition ? "estimated" : undefined;
-      day.nutritionAdvice = getNutritionAdvice(day.nutrition, data.targets.nutrition);
+      day.nutritionAdvice = getNutritionAdvice(day.nutrition, latest.targets.nutrition);
 
       // Sort days chronologically
       updatedDays.sort((a, b) => a.date.localeCompare(b.date));
 
       // 4. Update core logs object
-      const updatedData: FitMeData = {
-        ...data,
-        updatedAt: formDate,
-        periodLabel: `${updatedDays[0]?.date || formDate}-${updatedDays.at(-1)?.date || formDate}`,
-        days: updatedDays,
-        stats: {
-          proteinQualifiedDays: updatedDays.filter(
-            item => item.proteinRangeG?.[1] >= data.targets.dailyProteinRangeG[0]
-          ).length
-        },
-        copy: {
-          ...data.copy,
-          overview: `今天已记录 ${day.intakeKcal} kcal，蛋白约 ${day.proteinRangeG[0]}-${day.proteinRangeG[1]}g。`,
-          summary: [
-            `今天目前已摄入约 ${day.intakeKcal} kcal。`,
-            `蛋白质目前约 ${day.proteinRangeG[0]}-${day.proteinRangeG[1]}g。`,
-            day.nutrition?.fiberG
-              ? `膳食纤维约 ${day.nutrition.fiberG}g，钠约 ${day.nutrition.sodiumMg}mg。`
-              : "营养维度还不完整，继续记录后会补齐。",
-            "继续按当天目标调整下一餐。"
-          ]
-        }
+      latest.updatedAt = formDate;
+      latest.periodLabel = `${updatedDays[0]?.date || formDate}-${updatedDays.at(-1)?.date || formDate}`;
+      latest.stats = {
+        proteinQualifiedDays: updatedDays.filter(
+          item => item.proteinRangeG?.[1] >= latest.targets.dailyProteinRangeG[0]
+        ).length
+      };
+      latest.copy = {
+        ...latest.copy,
+        overview: `今天已记录 ${day.intakeKcal} kcal，蛋白约 ${day.proteinRangeG[0]}-${day.proteinRangeG[1]}g。`,
+        summary: [
+          `今天目前已摄入约 ${day.intakeKcal} kcal。`,
+          `蛋白质目前约 ${day.proteinRangeG[0]}-${day.proteinRangeG[1]}g。`,
+          day.nutrition?.fiberG
+            ? `膳食纤维约 ${day.nutrition.fiberG}g，钠约 ${day.nutrition.sodiumMg}mg。`
+            : "营养维度还不完整，继续记录后会补齐。",
+          "继续按当天目标调整下一餐。"
+        ]
       };
 
-      // 5. Send payload to save
-      const saveRes = await fetch("/api/health-data", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-fitme-passcode": activeCode
-        },
-        body: JSON.stringify(updatedData)
-      });
-
-      if (!saveRes.ok) {
-        throw new Error(await saveRes.text());
-      }
-
-      // Success reload
-      setData(updatedData);
+      return latest;
+    }, setSubmitting, () => {
       setShowModal(false);
       resetForm();
-    } catch (e: any) {
-      alert("保存失败：" + e.message);
-    } finally {
-      setSubmitting(false);
-    }
+    });
   };
 
   const resetForm = () => {
