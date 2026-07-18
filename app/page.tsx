@@ -170,7 +170,8 @@ const translations = {
     sumWeightNoteActive: "Weight recorded today",
     sumWeightNoteInactive: "Using latest weight record",
     periodTitle: "🌸 Period Log",
-    periodSwitchNone: "Non-Period Day ⏸️",
+    periodSwitchNone: "Non-Period Day ▶️",
+    periodSwitchStop: "End Period ⏸️",
     periodSwitchLight: "Period: Light 🌸",
     periodSwitchMedium: "Period: Medium 🌸🌸",
     periodSwitchHeavy: "Period: Heavy 🌸🌸🌸",
@@ -265,7 +266,8 @@ const translations = {
     sumWeightNoteActive: "今日已称重记录",
     sumWeightNoteInactive: "使用最近一次体重数据",
     periodTitle: "生理期追踪",
-    periodSwitchNone: "非经期 ⏸️",
+    periodSwitchNone: "非经期 ▶️",
+    periodSwitchStop: "结束经期 ⏸️",
     periodSwitchLight: "经期：流量偏少 🌸",
     periodSwitchMedium: "经期：流量中等 🌸🌸",
     periodSwitchHeavy: "经期：流量偏多 🌸🌸🌸",
@@ -360,7 +362,8 @@ const translations = {
     sumWeightNoteActive: "本日記録済み",
     sumWeightNoteInactive: "前回のデータを使用",
     periodTitle: "生理周期トラッカー",
-    periodSwitchNone: "生理期間外 ⏸️",
+    periodSwitchNone: "生理期間外 ▶️",
+    periodSwitchStop: "生理終了 ⏸️",
     periodSwitchLight: "生理：経血量少なめ 🌸",
     periodSwitchMedium: "生理：経血量ふつう 🌸🌸",
     periodSwitchHeavy: "生理：経血量多め 🌸🌸🌸",
@@ -432,7 +435,7 @@ export default function FitMeDashboard() {
 
   // Retroactive Logging State
   const [isRetroModalOpen, setIsRetroModalOpen] = useState(false);
-  const [retroType, setRetroType] = useState<"fasting" | "bowel">("fasting");
+  const [retroType, setRetroType] = useState<"fasting" | "bowel" | "period">("fasting");
   const [retroDate, setRetroDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() - 1);
@@ -441,6 +444,7 @@ export default function FitMeDashboard() {
   const [retroStartTime, setRetroStartTime] = useState("20:00");
   const [retroEndTime, setRetroEndTime] = useState("12:00");
   const [retroBowelTime, setRetroBowelTime] = useState("08:00");
+  const [retroPeriodFlow, setRetroPeriodFlow] = useState<"none" | "light" | "medium" | "heavy">("none");
   const [isRetroSaving, setIsRetroSaving] = useState(false);
 
   // Onboarding setup state
@@ -757,6 +761,8 @@ export default function FitMeDashboard() {
           endMs += 86400000;
         }
         applyFastingDuration(startMs, endMs, latest);
+      } else if (retroType === "period") {
+        targetDay.period = retroPeriodFlow === "none" ? null : { flow: retroPeriodFlow };
       }
 
       return latest;
@@ -2083,7 +2089,7 @@ export default function FitMeDashboard() {
                 className={`ink-segment ${(latest.period?.flow || "none") === "none" ? "active" : ""}`}
                 onClick={() => !isVitalsSaving && handleTogglePeriod(latest.date, null)}
               >
-                {t("periodSwitchNone")}
+                {latest.period ? t("periodSwitchStop") : t("periodSwitchNone")}
               </div>
               <div 
                 className={`ink-segment ${(latest.period?.flow) === "light" ? "active" : ""}`}
@@ -2419,11 +2425,12 @@ export default function FitMeDashboard() {
                 <select
                   className="form-select"
                   value={retroType}
-                  onChange={e => setRetroType(e.target.value as "fasting" | "bowel")}
+                  onChange={e => setRetroType(e.target.value as "fasting" | "bowel" | "period")}
                   style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
                 >
                   <option value="fasting">{t("retroFasting")}</option>
                   <option value="bowel">{t("retroBowel")}</option>
+                  <option value="period">{t("chartPeriod")}</option>
                 </select>
               </div>
 
@@ -2464,7 +2471,7 @@ export default function FitMeDashboard() {
                     />
                   </div>
                 </div>
-              ) : (
+              ) : retroType === "bowel" ? (
                 <div className="form-group">
                   <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--sk-mech)", fontWeight: "bold" }}>{t("retroTime")}</label>
                   <input
@@ -2476,7 +2483,22 @@ export default function FitMeDashboard() {
                     style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
                   />
                 </div>
-              )}
+              ) : retroType === "period" ? (
+                <div className="form-group">
+                  <label className="form-label" style={{ display: "block", marginBottom: "6px", fontSize: "12px", textTransform: "uppercase", letterSpacing: "1px", color: "var(--sk-mech)", fontWeight: "bold" }}>{t("periodTitle")}</label>
+                  <select
+                    className="form-select"
+                    value={retroPeriodFlow}
+                    onChange={e => setRetroPeriodFlow(e.target.value as "none" | "light" | "medium" | "heavy")}
+                    style={{ width: "100%", padding: "10px", background: "rgba(255,255,255,0.6)", border: "1px solid rgba(26,26,24,0.2)", borderRadius: "6px", color: "var(--sk-ink)" }}
+                  >
+                    <option value="none">{t("periodSwitchNone").replace(" ▶️", "")}</option>
+                    <option value="light">{t("periodSwitchLight")}</option>
+                    <option value="medium">{t("periodSwitchMedium")}</option>
+                    <option value="heavy">{t("periodSwitchHeavy")}</option>
+                  </select>
+                </div>
+              ) : null}
 
               <button 
                 type="submit" 
