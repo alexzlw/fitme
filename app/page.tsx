@@ -59,6 +59,12 @@ interface DayLog {
   };
 }
 
+const getInheritedPeriod = (days: DayLog[], dateStr: string): PeriodLog | null => {
+  if (!days || days.length === 0) return null;
+  const prevDay = [...days].sort((a, b) => b.date.localeCompare(a.date)).find(d => d.date < dateStr);
+  return (prevDay && prevDay.period && prevDay.period.flow) ? { flow: prevDay.period.flow } : null;
+};
+
 interface Profile {
   sex: string;
   age: number;
@@ -646,7 +652,8 @@ export default function FitMeDashboard() {
           exerciseLabel: "未记录运动", exerciseKcal: 0,
           deficitKcal: Math.round(((latestData.profile.sedentaryMaintenanceKcalRange[0] + latestData.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
           note: "", meals: [],
-          fastingDurationHours: 0
+          fastingDurationHours: 0,
+          period: getInheritedPeriod(daysArr, dateStr)
         };
         daysArr.push(dayLog);
       }
@@ -692,7 +699,8 @@ export default function FitMeDashboard() {
           deficitKcal: Math.round(((latest.profile.sedentaryMaintenanceKcalRange[0] + latest.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
           note: "", meals: [],
           fastingDurationHours: 0,
-          hungerAttacks: { succeeded: 0, failed: 0 }
+          hungerAttacks: { succeeded: 0, failed: 0 },
+          period: getInheritedPeriod(days, todayStr)
         };
         days.push(todayLog);
       }
@@ -742,7 +750,8 @@ export default function FitMeDashboard() {
           exerciseLabel: "未记录运动", exerciseKcal: 0,
           deficitKcal: Math.round(((latest.profile.sedentaryMaintenanceKcalRange[0] + latest.profile.sedentaryMaintenanceKcalRange[1]) / 2)),
           note: "", meals: [],
-          fastingDurationHours: 0
+          fastingDurationHours: 0,
+          period: getInheritedPeriod(days, retroDate)
         };
         days.push(targetDay);
       }
@@ -864,7 +873,8 @@ export default function FitMeDashboard() {
           exerciseLabel: "未记录运动", exerciseKcal: 0,
           deficitKcal: 0,
           note: "", meals: [],
-          bowelMovements: [newLog]
+          bowelMovements: [newLog],
+          period: getInheritedPeriod(days, dateStr)
         };
         days.push(dayLog);
       } else {
@@ -900,7 +910,8 @@ export default function FitMeDashboard() {
           exerciseLabel: "未记录运动", exerciseKcal: 0,
           deficitKcal: 0,
           note: "", meals: [],
-          weightKg: weight
+          weightKg: weight,
+          period: getInheritedPeriod(days, dateStr)
         };
         days.push(dayLog);
       } else {
@@ -1504,7 +1515,8 @@ export default function FitMeDashboard() {
           deficitKcal: maintenanceAvg,
           note: "",
           meals: [],
-          nutrition: null
+          nutrition: null,
+          period: getInheritedPeriod(updatedDays, formDate)
         };
         updatedDays.push(day);
       }
@@ -1884,7 +1896,8 @@ export default function FitMeDashboard() {
         2)
     ),
     note: "",
-    meals: [] as Meal[]
+    meals: [] as Meal[],
+    period: getInheritedPeriod(days, latestDateStr)
   };
 
   const totalDeficit = days.reduce((sum, d) => sum + d.deficitKcal, 0);
